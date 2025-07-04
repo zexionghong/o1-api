@@ -11,6 +11,8 @@ import (
 	"ai-api-gateway/internal/presentation/middleware"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "ai-api-gateway/docs" // 导入swagger文档
 )
@@ -69,7 +71,6 @@ func (r *Router) SetupRoutes() {
 	userHandler := handlers.NewUserHandler(r.serviceFactory.UserService(), r.logger)
 	apiKeyHandler := handlers.NewAPIKeyHandler(r.serviceFactory.APIKeyService(), r.logger)
 	healthHandler := handlers.NewHealthHandler(r.gatewayService, r.logger)
-	swaggerHandler := handlers.NewSwaggerHandler()
 
 	// 健康检查路由（无需认证）
 	health := r.engine.Group("/health")
@@ -85,7 +86,13 @@ func (r *Router) SetupRoutes() {
 	r.engine.GET("/metrics", healthHandler.GetMetrics)
 
 	// Swagger文档路由（无需认证）
-	r.engine.GET("/swagger/*any", swaggerHandler.SwaggerUI)
+	swaggerGroup := r.engine.Group("/swagger")
+	swaggerGroup.Use(func(c *gin.Context) {
+		// 设置 CSP 头部以允许 Swagger UI 正常工作
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'")
+		c.Next()
+	})
+	swaggerGroup.GET("/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// OpenAI兼容的API路由
 	v1 := r.engine.Group("/v1")

@@ -1,0 +1,371 @@
+basePath: /
+definitions:
+  clients.AIChoice:
+    properties:
+      finish_reason:
+        type: string
+      index:
+        type: integer
+      message:
+        $ref: '#/definitions/clients.AIMessage'
+      text:
+        type: string
+    type: object
+  clients.AIError:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+      type:
+        type: string
+    type: object
+  clients.AIMessage:
+    properties:
+      content:
+        type: string
+      role:
+        type: string
+    type: object
+  clients.AIModel:
+    properties:
+      created:
+        type: integer
+      id:
+        type: string
+      object:
+        type: string
+      owned_by:
+        type: string
+      permission:
+        items: {}
+        type: array
+    type: object
+  clients.AIRequest:
+    properties:
+      max_tokens:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/clients.AIMessage'
+        type: array
+      model:
+        type: string
+      prompt:
+        type: string
+      stream:
+        type: boolean
+      temperature:
+        type: number
+    type: object
+  clients.AIResponse:
+    properties:
+      choices:
+        items:
+          $ref: '#/definitions/clients.AIChoice'
+        type: array
+      created:
+        type: integer
+      error:
+        $ref: '#/definitions/clients.AIError'
+      id:
+        type: string
+      model:
+        type: string
+      object:
+        type: string
+      usage:
+        $ref: '#/definitions/clients.AIUsage'
+    type: object
+  clients.AIUsage:
+    properties:
+      completion_tokens:
+        type: integer
+      prompt_tokens:
+        type: integer
+      total_tokens:
+        type: integer
+    type: object
+  clients.ModelsResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/clients.AIModel'
+        type: array
+      object:
+        type: string
+    type: object
+  clients.UsageResponse:
+    properties:
+      total_cost:
+        type: number
+      total_requests:
+        type: integer
+      total_tokens:
+        type: integer
+    type: object
+  dto.ErrorInfo:
+    properties:
+      code:
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      message:
+        type: string
+    type: object
+  dto.Response:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/dto.ErrorInfo'
+      message:
+        type: string
+      success:
+        type: boolean
+      timestamp:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: AI API Gateway Team
+    url: https://example.com/support
+  description: "AI API Gateway是一个高性能的AI API网关，提供统一的API接口来访问多个AI提供商。\n\n## 主要功能\n-
+    \U0001F916 多AI提供商支持（OpenAI、Anthropic等）\n- ⚖️ 智能负载均衡和故障转移\n- \U0001F4CA 精确的配额管理和计费\n-
+    \U0001F510 完整的认证和授权\n- \U0001F4C8 实时监控和统计\n\n## 认证方式\n所有API请求都需要在请求头中包含有效的API密钥：\n```\nAuthorization:
+    Bearer YOUR_API_KEY\n```\n\n## 快速开始\n1. 使用管理API创建用户账户\n2. 为用户生成API密钥\n3. 使用API密钥调用AI接口\n\n##
+    支持的模型\n- GPT-3.5-turbo\n- GPT-4\n- Claude-3-haiku\n- Claude-3-sonnet\n- Claude-3-opus"
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: AI API Gateway
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      description: 检查服务整体健康状态，包括数据库和AI提供商连接状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 健康检查通过
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "503":
+          description: 健康检查失败
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: 健康检查
+      tags:
+      - 健康检查
+  /health/live:
+    get:
+      description: 检查服务是否正在运行
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务存活
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: 存活检查
+      tags:
+      - 健康检查
+  /health/ready:
+    get:
+      description: 检查服务是否已准备好接收请求
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务就绪
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "503":
+          description: 服务未就绪
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: 就绪检查
+      tags:
+      - 健康检查
+  /health/stats:
+    get:
+      description: 获取系统运行统计信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 统计信息
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: 获取统计失败
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: 系统统计
+      tags:
+      - 健康检查
+  /health/version:
+    get:
+      description: 获取服务版本信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 版本信息
+          schema:
+            $ref: '#/definitions/dto.Response'
+      summary: 版本信息
+      tags:
+      - 健康检查
+  /metrics:
+    get:
+      description: 获取Prometheus格式的监控指标
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Prometheus指标
+          schema:
+            type: string
+      summary: 监控指标
+      tags:
+      - 监控
+  /v1/chat/completions:
+    post:
+      consumes:
+      - application/json
+      description: 创建聊天补全请求，兼容OpenAI API格式。支持流式和非流式响应。
+      parameters:
+      - description: 聊天补全请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/clients.AIRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 聊天补全响应
+          schema:
+            $ref: '#/definitions/clients.AIResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "429":
+          description: 请求过于频繁
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 聊天补全
+      tags:
+      - AI接口
+  /v1/completions:
+    post:
+      consumes:
+      - application/json
+      description: 创建文本补全请求，兼容OpenAI API格式
+      parameters:
+      - description: 文本补全请求
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/clients.AIRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 文本补全响应
+          schema:
+            $ref: '#/definitions/clients.AIResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "429":
+          description: 请求过于频繁
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 文本补全
+      tags:
+      - AI接口
+  /v1/models:
+    get:
+      description: 获取可用的AI模型列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 模型列表
+          schema:
+            $ref: '#/definitions/clients.ModelsResponse'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 列出模型
+      tags:
+      - AI接口
+  /v1/usage:
+    get:
+      description: 获取当前用户的API使用统计
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 使用统计信息
+          schema:
+            $ref: '#/definitions/clients.UsageResponse'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/dto.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 使用统计
+      tags:
+      - AI接口
+schemes:
+- http
+- https
+securityDefinitions:
+  ApiKeyAuth:
+    description: API密钥认证，格式：Bearer YOUR_API_KEY
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

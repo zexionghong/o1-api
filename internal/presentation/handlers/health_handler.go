@@ -28,6 +28,13 @@ func NewHealthHandler(gatewayService gateway.GatewayService, logger logger.Logge
 }
 
 // HealthCheck 健康检查
+// @Summary 健康检查
+// @Description 检查服务整体健康状态，包括数据库和AI提供商连接状态
+// @Tags 健康检查
+// @Produce json
+// @Success 200 {object} dto.Response "健康检查通过"
+// @Failure 503 {object} dto.Response "健康检查失败"
+// @Router /health [get]
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	result, err := h.gatewayService.HealthCheck(c.Request.Context())
 	if err != nil {
@@ -46,6 +53,13 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 }
 
 // ReadinessCheck 就绪检查
+// @Summary 就绪检查
+// @Description 检查服务是否已准备好接收请求
+// @Tags 健康检查
+// @Produce json
+// @Success 200 {object} dto.Response "服务就绪"
+// @Failure 503 {object} dto.Response "服务未就绪"
+// @Router /health/ready [get]
 func (h *HealthHandler) ReadinessCheck(c *gin.Context) {
 	// 简单的就绪检查
 	response := &dto.HealthCheckResponse{
@@ -62,6 +76,12 @@ func (h *HealthHandler) ReadinessCheck(c *gin.Context) {
 }
 
 // LivenessCheck 存活检查
+// @Summary 存活检查
+// @Description 检查服务是否正在运行
+// @Tags 健康检查
+// @Produce json
+// @Success 200 {object} dto.Response "服务存活"
+// @Router /health/live [get]
 func (h *HealthHandler) LivenessCheck(c *gin.Context) {
 	// 简单的存活检查
 	response := map[string]interface{}{
@@ -74,6 +94,13 @@ func (h *HealthHandler) LivenessCheck(c *gin.Context) {
 }
 
 // GetStats 获取统计信息
+// @Summary 系统统计
+// @Description 获取系统运行统计信息
+// @Tags 健康检查
+// @Produce json
+// @Success 200 {object} dto.Response "统计信息"
+// @Failure 500 {object} dto.Response "获取统计失败"
+// @Router /health/stats [get]
 func (h *HealthHandler) GetStats(c *gin.Context) {
 	stats, err := h.gatewayService.GetStats(c.Request.Context())
 	if err != nil {
@@ -92,6 +119,12 @@ func (h *HealthHandler) GetStats(c *gin.Context) {
 }
 
 // GetMetrics 获取监控指标（Prometheus格式）
+// @Summary 监控指标
+// @Description 获取Prometheus格式的监控指标
+// @Tags 监控
+// @Produce text/plain
+// @Success 200 {string} string "Prometheus指标"
+// @Router /metrics [get]
 func (h *HealthHandler) GetMetrics(c *gin.Context) {
 	// TODO: 实现Prometheus指标输出
 	c.Header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
@@ -118,6 +151,12 @@ ai_gateway_uptime_seconds %f
 }
 
 // GetVersion 获取版本信息
+// @Summary 版本信息
+// @Description 获取服务版本信息
+// @Tags 健康检查
+// @Produce json
+// @Success 200 {object} dto.Response "版本信息"
+// @Router /health/version [get]
 func (h *HealthHandler) GetVersion(c *gin.Context) {
 	version := map[string]interface{}{
 		"version":    "1.0.0",   // TODO: 从构建信息中获取

@@ -1,251 +1,55 @@
 // Package docs AI API Gateway API Documentation
 //
-// AI API Gateway是一个高性能的AI API网关，提供统一的API接口来访问多个AI提供商。
+//	@title			AI API Gateway
+//	@version		1.0.0
+//	@description	AI API Gateway是一个高性能的AI API网关，提供统一的API接口来访问多个AI提供商。
+//	@description
+//	@description	## 主要功能
+//	@description	- 🤖 多AI提供商支持（OpenAI、Anthropic等）
+//	@description	- ⚖️ 智能负载均衡和故障转移
+//	@description	- 📊 精确的配额管理和计费
+//	@description	- 🔐 完整的认证和授权
+//	@description	- 📈 实时监控和统计
+//	@description
+//	@description	## 认证方式
+//	@description	所有API请求都需要在请求头中包含有效的API密钥：
+//	@description	```
+//	@description	Authorization: Bearer YOUR_API_KEY
+//	@description	```
+//	@description
+//	@description	## 快速开始
+//	@description	1. 使用管理API创建用户账户
+//	@description	2. 为用户生成API密钥
+//	@description	3. 使用API密钥调用AI接口
+//	@description
+//	@description	## 支持的模型
+//	@description	- GPT-3.5-turbo
+//	@description	- GPT-4
+//	@description	- Claude-3-haiku
+//	@description	- Claude-3-sonnet
+//	@description	- Claude-3-opus
 //
-// 主要功能：
-// - 多AI提供商支持（OpenAI、Anthropic等）
-// - 智能负载均衡和故障转移
-// - 精确的配额管理和计费
-// - 完整的认证和授权
-// - 实时监控和统计
+//	@contact.name	AI API Gateway Team
+//	@contact.email	support@example.com
+//	@contact.url	https://example.com/support
 //
-// Terms Of Service: https://example.com/terms/
+//	@license.name	MIT
+//	@license.url	https://opensource.org/licenses/MIT
 //
-// Schemes: http, https
-// Host: localhost:8080
-// BasePath: /
-// Version: 1.0.0
-// License: MIT https://opensource.org/licenses/MIT
-// Contact: AI API Gateway Team <support@example.com> https://example.com/support
+//	@host		localhost:8080
+//	@BasePath	/
+//	@schemes	http https
 //
-// Consumes:
-// - application/json
-//
-// Produces:
-// - application/json
-//
-// Security:
-// - ApiKeyAuth: []
-//
-// SecurityDefinitions:
-// ApiKeyAuth:
-//
-//	type: apiKey
-//	in: header
-//	name: Authorization
-//	description: API密钥认证，格式：Bearer YOUR_API_KEY
-//
-// swagger:meta
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							header
+//	@name						Authorization
+//	@description				API密钥认证，格式：Bearer YOUR_API_KEY
 package docs
 
 import (
 	_ "ai-api-gateway/internal/application/dto"
 	_ "ai-api-gateway/internal/domain/entities"
 )
-
-// swagger:route GET /health/ready health healthReadiness
-// 就绪检查
-//
-// 检查服务是否已准备好接收请求
-//
-// responses:
-//   200: healthResponse
-//   503: errorResponse
-
-// swagger:route GET /health/live health healthLiveness
-// 存活检查
-//
-// 检查服务是否正在运行
-//
-// responses:
-//   200: healthResponse
-//   503: errorResponse
-
-// swagger:route GET /health/stats health healthStats
-// 系统统计
-//
-// 获取系统运行统计信息
-//
-// responses:
-//   200: statsResponse
-//   500: errorResponse
-
-// swagger:route POST /v1/chat/completions ai chatCompletions
-// 聊天补全
-//
-// 创建聊天补全请求，兼容OpenAI API格式
-//
-// Security:
-//   ApiKeyAuth: []
-//
-// responses:
-//   200: chatCompletionResponse
-//   400: errorResponse
-//   401: errorResponse
-//   429: errorResponse
-//   500: errorResponse
-
-// swagger:route POST /v1/completions ai completions
-// 文本补全
-//
-// 创建文本补全请求，兼容OpenAI API格式
-//
-// Security:
-//   ApiKeyAuth: []
-//
-// responses:
-//   200: completionResponse
-//   400: errorResponse
-//   401: errorResponse
-//   429: errorResponse
-//   500: errorResponse
-
-// swagger:route GET /v1/models ai listModels
-// 列出模型
-//
-// 获取可用的AI模型列表
-//
-// Security:
-//   ApiKeyAuth: []
-//
-// responses:
-//   200: modelsResponse
-//   401: errorResponse
-//   500: errorResponse
-
-// swagger:route GET /v1/usage ai getUsage
-// 获取使用情况
-//
-// 获取当前用户的API使用统计
-//
-// Security:
-//   ApiKeyAuth: []
-//
-// responses:
-//   200: usageResponse
-//   401: errorResponse
-//   500: errorResponse
-
-// swagger:route POST /admin/users admin createUser
-// 创建用户
-//
-// 创建新的用户账户
-//
-// responses:
-//   201: userResponse
-//   400: errorResponse
-//   500: errorResponse
-
-// swagger:route GET /admin/users admin listUsers
-// 列出用户
-//
-// 获取用户列表
-//
-// responses:
-//   200: usersListResponse
-//   500: errorResponse
-
-// swagger:route GET /admin/users/{id} admin getUser
-// 获取用户
-//
-// 根据ID获取用户信息
-//
-// responses:
-//   200: userResponse
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route PUT /admin/users/{id} admin updateUser
-// 更新用户
-//
-// 更新用户信息
-//
-// responses:
-//   200: userResponse
-//   400: errorResponse
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route DELETE /admin/users/{id} admin deleteUser
-// 删除用户
-//
-// 删除用户账户
-//
-// responses:
-//   204: description: 删除成功
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route POST /admin/users/{id}/balance admin updateBalance
-// 更新余额
-//
-// 更新用户账户余额
-//
-// responses:
-//   200: userResponse
-//   400: errorResponse
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route POST /admin/api-keys admin createAPIKey
-// 创建API密钥
-//
-// 为用户创建新的API密钥
-//
-// responses:
-//   201: apiKeyCreateResponse
-//   400: errorResponse
-//   500: errorResponse
-
-// swagger:route GET /admin/api-keys admin listAPIKeys
-// 列出API密钥
-//
-// 获取API密钥列表
-//
-// responses:
-//   200: apiKeysListResponse
-//   500: errorResponse
-
-// swagger:route GET /admin/api-keys/{id} admin getAPIKey
-// 获取API密钥
-//
-// 根据ID获取API密钥信息
-//
-// responses:
-//   200: apiKeyResponse
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route PUT /admin/api-keys/{id} admin updateAPIKey
-// 更新API密钥
-//
-// 更新API密钥信息
-//
-// responses:
-//   200: apiKeyResponse
-//   400: errorResponse
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route DELETE /admin/api-keys/{id} admin deleteAPIKey
-// 删除API密钥
-//
-// 删除API密钥
-//
-// responses:
-//   204: description: 删除成功
-//   404: errorResponse
-//   500: errorResponse
-
-// swagger:route POST /admin/api-keys/{id}/revoke admin revokeAPIKey
-// 撤销API密钥
-//
-// 撤销API密钥，使其失效
-//
-// responses:
-//   200: apiKeyResponse
-//   404: errorResponse
-//   500: errorResponse
 
 // 响应模型定义
 
@@ -261,11 +65,11 @@ type ErrorResponseWrapper struct {
 	}
 }
 
-// 错误详情
+// Error 错误详情
 type Error struct {
-	Code    string      `json:"code" example:"INVALID_REQUEST"`
-	Message string      `json:"message" example:"请求参数无效"`
-	Details interface{} `json:"details,omitempty"`
+	Code    string `json:"code" example:"INVALID_REQUEST"`
+	Message string `json:"message" example:"请求参数无效"`
+	Details any    `json:"details,omitempty"`
 }
 
 // 健康检查响应

@@ -79,6 +79,19 @@ type AIModel struct {
 	Permission []interface{} `json:"permission"`
 }
 
+// ModelsResponse 模型列表响应
+type ModelsResponse struct {
+	Object string    `json:"object"`
+	Data   []AIModel `json:"data"`
+}
+
+// UsageResponse 使用情况响应
+type UsageResponse struct {
+	TotalRequests int     `json:"total_requests"`
+	TotalTokens   int     `json:"total_tokens"`
+	TotalCost     float64 `json:"total_cost"`
+}
+
 // aiProviderClientImpl AI提供商客户端实现
 type aiProviderClientImpl struct {
 	httpClient HTTPClient

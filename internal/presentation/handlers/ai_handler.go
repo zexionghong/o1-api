@@ -179,6 +179,19 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 }
 
 // ChatCompletions 处理聊天完成请求
+// @Summary 聊天补全
+// @Description 创建聊天补全请求，兼容OpenAI API格式。支持流式和非流式响应。
+// @Tags AI接口
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param body body clients.AIRequest true "聊天补全请求"
+// @Success 200 {object} clients.AIResponse "聊天补全响应"
+// @Failure 400 {object} dto.Response "请求参数错误"
+// @Failure 401 {object} dto.Response "认证失败"
+// @Failure 429 {object} dto.Response "请求过于频繁"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /v1/chat/completions [post]
 func (h *AIHandler) ChatCompletions(c *gin.Context) {
 	// 获取认证信息
 	userID, exists := middleware.GetUserIDFromContext(c)
@@ -293,6 +306,19 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 }
 
 // Completions 处理文本完成请求
+// @Summary 文本补全
+// @Description 创建文本补全请求，兼容OpenAI API格式
+// @Tags AI接口
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param body body clients.AIRequest true "文本补全请求"
+// @Success 200 {object} clients.AIResponse "文本补全响应"
+// @Failure 400 {object} dto.Response "请求参数错误"
+// @Failure 401 {object} dto.Response "认证失败"
+// @Failure 429 {object} dto.Response "请求过于频繁"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /v1/completions [post]
 func (h *AIHandler) Completions(c *gin.Context) {
 	// 获取认证信息
 	userID, exists := middleware.GetUserIDFromContext(c)
@@ -401,6 +427,15 @@ func (h *AIHandler) Completions(c *gin.Context) {
 }
 
 // Models 获取可用模型列表
+// @Summary 列出模型
+// @Description 获取可用的AI模型列表
+// @Tags AI接口
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} clients.ModelsResponse "模型列表"
+// @Failure 401 {object} dto.Response "认证失败"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /v1/models [get]
 func (h *AIHandler) Models(c *gin.Context) {
 	// TODO: 实现获取模型列表
 	c.JSON(http.StatusOK, gin.H{
@@ -410,6 +445,15 @@ func (h *AIHandler) Models(c *gin.Context) {
 }
 
 // Usage 获取使用情况
+// @Summary 使用统计
+// @Description 获取当前用户的API使用统计
+// @Tags AI接口
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} dto.UsageResponse "使用统计信息"
+// @Failure 401 {object} dto.Response "认证失败"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /v1/usage [get]
 func (h *AIHandler) Usage(c *gin.Context) {
 	// 获取认证信息
 	userID, exists := middleware.GetUserIDFromContext(c)
