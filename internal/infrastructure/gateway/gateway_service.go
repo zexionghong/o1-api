@@ -17,11 +17,26 @@ type GatewayService interface {
 	// ProcessRequest 处理AI请求
 	ProcessRequest(ctx context.Context, request *GatewayRequest) (*GatewayResponse, error)
 
+	// ProcessStreamRequest 处理流式AI请求
+	ProcessStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) error
+
 	// HealthCheck 健康检查
 	HealthCheck(ctx context.Context) (*HealthCheckResult, error)
 
 	// GetStats 获取统计信息
 	GetStats(ctx context.Context) (*GatewayStats, error)
+}
+
+// StreamChunk 流式响应块
+type StreamChunk struct {
+	ID           string           `json:"id"`
+	Object       string           `json:"object"`
+	Created      int64            `json:"created"`
+	Model        string           `json:"model"`
+	Content      string           `json:"content"`
+	FinishReason *string          `json:"finish_reason"`
+	Usage        *clients.AIUsage `json:"usage,omitempty"`
+	Cost         *CostInfo        `json:"cost,omitempty"`
 }
 
 // GatewayRequest 网关请求
@@ -325,6 +340,39 @@ func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, c
 	// TODO: 实现完整的计费流程
 }
 
+// processQuotaConsumption 处理配额消费
+func (g *gatewayServiceImpl) processQuotaConsumption(ctx context.Context, userID int64, tokens int, cost float64) {
+	// 消费Token配额
+	if tokens > 0 {
+		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeTokens, float64(tokens)); err != nil {
+			g.logger.WithFields(map[string]interface{}{
+				"user_id": userID,
+				"tokens":  tokens,
+				"error":   err.Error(),
+			}).Warn("Failed to consume token quota")
+		}
+	}
+
+	// 消费成本配额
+	if cost > 0 {
+		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeCost, cost); err != nil {
+			g.logger.WithFields(map[string]interface{}{
+				"user_id": userID,
+				"cost":    cost,
+				"error":   err.Error(),
+			}).Warn("Failed to consume cost quota")
+		}
+	}
+
+	// 消费请求配额
+	if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeRequests, 1); err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id": userID,
+			"error":   err.Error(),
+		}).Warn("Failed to consume request quota")
+	}
+}
+
 // HealthCheck 健康检查
 func (g *gatewayServiceImpl) HealthCheck(ctx context.Context) (*HealthCheckResult, error) {
 	result := &HealthCheckResult{
@@ -340,6 +388,66 @@ func (g *gatewayServiceImpl) HealthCheck(ctx context.Context) (*HealthCheckResul
 	// TODO: 实现数据库健康检查
 
 	return result, nil
+}
+
+// ProcessStreamRequest 处理流式AI请求
+func (g *gatewayServiceImpl) ProcessStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) error {
+	// 生成请求ID
+	if request.RequestID == "" {
+		var err error
+		request.RequestID, err = g.requestIDGen.Generate()
+		if err != nil {
+			g.logger.WithField("error", err.Error()).Error("Failed to generate request ID")
+			request.RequestID = fmt.Sprintf("req_%d", time.Now().UnixNano())
+		}
+	}
+
+	// 路由请求到提供商
+	routeResponse, err := g.router.RouteStreamRequest(ctx, request, streamChan)
+	if err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"request_id": request.RequestID,
+			"user_id":    request.UserID,
+			"model":      request.ModelSlug,
+			"error":      err.Error(),
+		}).Error("Failed to route stream request")
+		return err
+	}
+
+	// 记录使用日志（异步）
+	go g.recordStreamUsage(ctx, request, routeResponse)
+
+	return nil
+}
+
+// recordStreamUsage 记录流式请求的使用日志
+func (g *gatewayServiceImpl) recordStreamUsage(ctx context.Context, request *GatewayRequest, routeResponse *RouteResponse) {
+	// 计算使用量和成本
+	usage := &UsageInfo{
+		InputTokens:  routeResponse.Response.Usage.PromptTokens,
+		OutputTokens: routeResponse.Response.Usage.CompletionTokens,
+		TotalTokens:  routeResponse.Response.Usage.TotalTokens,
+	}
+
+	// 计算成本
+	cost, err := g.calculateCost(ctx, routeResponse.Model.ID, usage.InputTokens, usage.OutputTokens)
+	if err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"request_id": request.RequestID,
+			"model_id":   routeResponse.Model.ID,
+			"error":      err.Error(),
+		}).Warn("Failed to calculate cost for stream request")
+		cost = &CostInfo{Currency: "USD"} // 默认值
+	}
+
+	// 记录使用日志
+	g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, routeResponse.Duration, nil)
+
+	// 处理配额消费
+	g.processQuotaConsumption(ctx, request.UserID, usage.TotalTokens, cost.TotalCost)
+
+	// 处理计费
+	g.processBilling(ctx, request.UserID, cost.TotalCost)
 }
 
 // GetStats 获取统计信息

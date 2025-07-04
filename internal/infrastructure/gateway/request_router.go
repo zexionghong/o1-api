@@ -17,6 +17,9 @@ type RequestRouter interface {
 	// RouteRequest 路由请求
 	RouteRequest(ctx context.Context, request *RouteRequest) (*RouteResponse, error)
 
+	// RouteStreamRequest 路由流式请求
+	RouteStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) (*RouteResponse, error)
+
 	// GetAvailableProviders 获取可用的提供商
 	GetAvailableProviders(ctx context.Context, modelSlug string) ([]*entities.Provider, error)
 }
@@ -277,4 +280,70 @@ func (r *requestRouterImpl) GetAllProviderStats() map[int64]*ProviderStats {
 		return lb.GetAllStats()
 	}
 	return make(map[int64]*ProviderStats)
+}
+
+// RouteStreamRequest 路由流式请求
+func (r *requestRouterImpl) RouteStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) (*RouteResponse, error) {
+	// 暂时返回错误，表示流式功能尚未完全实现
+	// TODO: 实现完整的流式请求路由
+
+	// 模拟流式响应
+	go func() {
+		// 注意：不在这里关闭 streamChan，因为它是由调用者创建和管理的
+
+		// 发送一些模拟的流式数据块
+		chunks := []string{
+			"Hello",
+			" there!",
+			" This",
+			" is",
+			" a",
+			" simulated",
+			" streaming",
+			" response.",
+		}
+
+		for i, content := range chunks {
+			select {
+			case <-ctx.Done():
+				return
+			case streamChan <- &StreamChunk{
+				ID:      fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano()),
+				Object:  "chat.completion.chunk",
+				Created: time.Now().Unix(),
+				Model:   request.ModelSlug,
+				Content: content,
+				FinishReason: func() *string {
+					if i == len(chunks)-1 {
+						reason := "stop"
+						return &reason
+					}
+					return nil
+				}(),
+			}:
+				time.Sleep(100 * time.Millisecond) // 模拟延迟
+			}
+		}
+	}()
+
+	// 构造基本响应
+	response := &RouteResponse{
+		Provider: &entities.Provider{
+			Name: "simulated",
+		},
+		Model: &entities.Model{
+			Name: request.ModelSlug,
+		},
+		Response: &clients.AIResponse{
+			Usage: clients.AIUsage{
+				PromptTokens:     10,
+				CompletionTokens: 20,
+				TotalTokens:      30,
+			},
+		},
+		Duration:  100 * time.Millisecond,
+		RequestID: request.RequestID,
+	}
+
+	return response, nil
 }
