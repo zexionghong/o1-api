@@ -53,7 +53,7 @@ func main() {
 	repoFactory := repositories.NewRepositoryFactory(dbConn.DB())
 
 	// 创建服务工厂
-	serviceFactory := services.NewServiceFactory(repoFactory)
+	serviceFactory := services.NewServiceFactory(repoFactory, log)
 
 	// 创建HTTP客户端
 	httpClient := clients.NewHTTPClient(30 * time.Second)

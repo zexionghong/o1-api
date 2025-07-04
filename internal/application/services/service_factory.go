@@ -1,18 +1,21 @@
 package services
 
 import (
+	"ai-api-gateway/internal/infrastructure/logger"
 	"ai-api-gateway/internal/infrastructure/repositories"
 )
 
 // ServiceFactory 服务工厂
 type ServiceFactory struct {
 	repoFactory *repositories.RepositoryFactory
+	logger      logger.Logger
 }
 
 // NewServiceFactory 创建服务工厂
-func NewServiceFactory(repoFactory *repositories.RepositoryFactory) *ServiceFactory {
+func NewServiceFactory(repoFactory *repositories.RepositoryFactory, log logger.Logger) *ServiceFactory {
 	return &ServiceFactory{
 		repoFactory: repoFactory,
+		logger:      log,
 	}
 }
 
@@ -52,6 +55,7 @@ func (f *ServiceFactory) QuotaService() QuotaService {
 		f.repoFactory.QuotaRepository(),
 		f.repoFactory.QuotaUsageRepository(),
 		f.repoFactory.UserRepository(),
+		f.logger,
 	)
 }
 

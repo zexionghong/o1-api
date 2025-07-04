@@ -100,30 +100,7 @@ type QuotaService interface {
 	ConsumeQuota(ctx context.Context, userID int64, quotaType entities.QuotaType, value float64) error
 }
 
-// quotaServiceImpl 配额服务存根实现
-type quotaServiceImpl struct {
-	quotaRepo      repositories.QuotaRepository
-	quotaUsageRepo repositories.QuotaUsageRepository
-	userRepo       repositories.UserRepository
-}
-
-func NewQuotaService(quotaRepo repositories.QuotaRepository, quotaUsageRepo repositories.QuotaUsageRepository, userRepo repositories.UserRepository) QuotaService {
-	return &quotaServiceImpl{
-		quotaRepo:      quotaRepo,
-		quotaUsageRepo: quotaUsageRepo,
-		userRepo:       userRepo,
-	}
-}
-
-func (s *quotaServiceImpl) CheckQuota(ctx context.Context, userID int64, quotaType entities.QuotaType, value float64) (bool, error) {
-	// TODO: 实现配额检查
-	return true, nil // 简单返回允许
-}
-
-func (s *quotaServiceImpl) ConsumeQuota(ctx context.Context, userID int64, quotaType entities.QuotaType, value float64) error {
-	// TODO: 实现配额消费
-	return nil
-}
+// 配额服务实现已移至 quota_service_impl.go
 
 // BillingService 计费服务接口
 type BillingService interface {
