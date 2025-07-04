@@ -212,8 +212,7 @@ func (g *gatewayServiceImpl) ProcessRequest(ctx context.Context, request *Gatewa
 	// 记录使用日志
 	usageLog := g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, cost, routeResponse.Duration, nil)
 
-	// 消费配额
-	g.consumeQuotas(ctx, request.UserID, usage, cost)
+	// 注意：配额消费已在中间件中处理，这里不再重复消费
 
 	// 处理计费
 	if usageLog != nil {
@@ -310,38 +309,7 @@ func (g *gatewayServiceImpl) recordUsageLog(ctx context.Context, request *Gatewa
 	return usageLog
 }
 
-// consumeQuotas 消费配额
-func (g *gatewayServiceImpl) consumeQuotas(ctx context.Context, userID int64, usage *UsageInfo, cost *CostInfo) {
-	// 消费请求配额
-	if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeRequests, 1); err != nil {
-		g.logger.WithFields(map[string]interface{}{
-			"user_id": userID,
-			"error":   err.Error(),
-		}).Warn("Failed to consume request quota")
-	}
-
-	// 消费token配额
-	if usage.TotalTokens > 0 {
-		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeTokens, float64(usage.TotalTokens)); err != nil {
-			g.logger.WithFields(map[string]interface{}{
-				"user_id":      userID,
-				"total_tokens": usage.TotalTokens,
-				"error":        err.Error(),
-			}).Warn("Failed to consume token quota")
-		}
-	}
-
-	// 消费成本配额
-	if cost.TotalCost > 0 {
-		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeCost, cost.TotalCost); err != nil {
-			g.logger.WithFields(map[string]interface{}{
-				"user_id":    userID,
-				"total_cost": cost.TotalCost,
-				"error":      err.Error(),
-			}).Warn("Failed to consume cost quota")
-		}
-	}
-}
+// 注意：consumeQuotas 函数已删除，配额消费现在只在中间件中处理，避免重复消费
 
 // processBilling 处理计费
 func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, usageLogID int64, cost float64) {
@@ -424,38 +392,7 @@ func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, u
 	}).Info("Billing processed successfully")
 }
 
-// processQuotaConsumption 处理配额消费
-func (g *gatewayServiceImpl) processQuotaConsumption(ctx context.Context, userID int64, tokens int, cost float64) {
-	// 消费Token配额
-	if tokens > 0 {
-		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeTokens, float64(tokens)); err != nil {
-			g.logger.WithFields(map[string]interface{}{
-				"user_id": userID,
-				"tokens":  tokens,
-				"error":   err.Error(),
-			}).Warn("Failed to consume token quota")
-		}
-	}
-
-	// 消费成本配额
-	if cost > 0 {
-		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeCost, cost); err != nil {
-			g.logger.WithFields(map[string]interface{}{
-				"user_id": userID,
-				"cost":    cost,
-				"error":   err.Error(),
-			}).Warn("Failed to consume cost quota")
-		}
-	}
-
-	// 消费请求配额
-	if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeRequests, 1); err != nil {
-		g.logger.WithFields(map[string]interface{}{
-			"user_id": userID,
-			"error":   err.Error(),
-		}).Warn("Failed to consume request quota")
-	}
-}
+// 注意：processQuotaConsumption 函数已删除，配额消费现在只在中间件中处理，避免重复消费
 
 // HealthCheck 健康检查
 func (g *gatewayServiceImpl) HealthCheck(ctx context.Context) (*HealthCheckResult, error) {
@@ -527,8 +464,7 @@ func (g *gatewayServiceImpl) recordStreamUsage(ctx context.Context, request *Gat
 	// 记录使用日志
 	usageLog := g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, cost, routeResponse.Duration, nil)
 
-	// 处理配额消费
-	g.processQuotaConsumption(ctx, request.UserID, usage.TotalTokens, cost.TotalCost)
+	// 注意：配额消费已在中间件中处理，这里不再重复消费
 
 	// 处理计费
 	if usageLog != nil {
