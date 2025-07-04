@@ -49,6 +49,7 @@ func (s *billingServiceImpl) CalculateCost(ctx context.Context, modelID int64, i
 		// 如果找不到定价，使用默认值（避免服务中断）
 		inputPricing = &entities.ModelPricing{
 			PricePerUnit: 0.001, // 默认每1000个token $0.001
+			Multiplier:   1.5,   // 默认1.5倍率
 			Unit:         entities.PricingUnitToken,
 			Currency:     "USD",
 		}
@@ -66,25 +67,29 @@ func (s *billingServiceImpl) CalculateCost(ctx context.Context, modelID int64, i
 		// 如果找不到定价，使用默认值
 		outputPricing = &entities.ModelPricing{
 			PricePerUnit: 0.002, // 默认每1000个token $0.002
+			Multiplier:   1.5,   // 默认1.5倍率
 			Unit:         entities.PricingUnitToken,
 			Currency:     "USD",
 		}
 	}
 
-	// 计算成本
+	// 计算成本（应用倍率）
 	// 注意：价格通常是按1000个token计算的，所以需要除以1000
-	inputCost := float64(inputTokens) * inputPricing.PricePerUnit / 1000.0
-	outputCost := float64(outputTokens) * outputPricing.PricePerUnit / 1000.0
+	// 应用倍率：最终价格 = 基础价格 * 倍率
+	inputCost := float64(inputTokens) * inputPricing.PricePerUnit * inputPricing.Multiplier / 1000.0
+	outputCost := float64(outputTokens) * outputPricing.PricePerUnit * outputPricing.Multiplier / 1000.0
 	totalCost := inputCost + outputCost
 
 	s.logger.WithFields(map[string]interface{}{
-		"model_id":      modelID,
-		"input_tokens":  inputTokens,
-		"output_tokens": outputTokens,
-		"input_cost":    inputCost,
-		"output_cost":   outputCost,
-		"total_cost":    totalCost,
-	}).Debug("Cost calculation completed")
+		"model_id":          modelID,
+		"input_tokens":      inputTokens,
+		"output_tokens":     outputTokens,
+		"input_cost":        inputCost,
+		"output_cost":       outputCost,
+		"total_cost":        totalCost,
+		"input_multiplier":  inputPricing.Multiplier,
+		"output_multiplier": outputPricing.Multiplier,
+	}).Debug("Cost calculation completed with multiplier")
 
 	return totalCost, nil
 }

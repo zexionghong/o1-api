@@ -8,11 +8,11 @@ import (
 type ModelType string
 
 const (
-	ModelTypeChat      ModelType = "chat"
+	ModelTypeChat       ModelType = "chat"
 	ModelTypeCompletion ModelType = "completion"
-	ModelTypeEmbedding ModelType = "embedding"
-	ModelTypeImage     ModelType = "image"
-	ModelTypeAudio     ModelType = "audio"
+	ModelTypeEmbedding  ModelType = "embedding"
+	ModelTypeImage      ModelType = "image"
+	ModelTypeAudio      ModelType = "audio"
 )
 
 // ModelStatus 模型状态枚举
@@ -26,20 +26,20 @@ const (
 
 // Model AI模型实体
 type Model struct {
-	ID                 int64       `json:"id" db:"id"`
-	ProviderID         int64       `json:"provider_id" db:"provider_id"`
-	Name               string      `json:"name" db:"name"`
-	Slug               string      `json:"slug" db:"slug"`
-	DisplayName        *string     `json:"display_name,omitempty" db:"display_name"`
-	Description        *string     `json:"description,omitempty" db:"description"`
-	ModelType          ModelType   `json:"model_type" db:"model_type"`
-	ContextLength      *int        `json:"context_length,omitempty" db:"context_length"`
-	MaxTokens          *int        `json:"max_tokens,omitempty" db:"max_tokens"`
-	SupportsStreaming  bool        `json:"supports_streaming" db:"supports_streaming"`
-	SupportsFunctions  bool        `json:"supports_functions" db:"supports_functions"`
-	Status             ModelStatus `json:"status" db:"status"`
-	CreatedAt          time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time   `json:"updated_at" db:"updated_at"`
+	ID                int64       `json:"id" db:"id"`
+	ProviderID        int64       `json:"provider_id" db:"provider_id"`
+	Name              string      `json:"name" db:"name"`
+	Slug              string      `json:"slug" db:"slug"`
+	DisplayName       *string     `json:"display_name,omitempty" db:"display_name"`
+	Description       *string     `json:"description,omitempty" db:"description"`
+	ModelType         ModelType   `json:"model_type" db:"model_type"`
+	ContextLength     *int        `json:"context_length,omitempty" db:"context_length"`
+	MaxTokens         *int        `json:"max_tokens,omitempty" db:"max_tokens"`
+	SupportsStreaming bool        `json:"supports_streaming" db:"supports_streaming"`
+	SupportsFunctions bool        `json:"supports_functions" db:"supports_functions"`
+	Status            ModelStatus `json:"status" db:"status"`
+	CreatedAt         time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time   `json:"updated_at" db:"updated_at"`
 }
 
 // IsAvailable 检查模型是否可用
@@ -106,15 +106,16 @@ const (
 
 // ModelPricing 模型定价实体
 type ModelPricing struct {
-	ID            int64       `json:"id" db:"id"`
-	ModelID       int64       `json:"model_id" db:"model_id"`
-	PricingType   PricingType `json:"pricing_type" db:"pricing_type"`
-	PricePerUnit  float64     `json:"price_per_unit" db:"price_per_unit"`
-	Unit          PricingUnit `json:"unit" db:"unit"`
-	Currency      string      `json:"currency" db:"currency"`
-	EffectiveFrom time.Time   `json:"effective_from" db:"effective_from"`
-	EffectiveUntil *time.Time `json:"effective_until,omitempty" db:"effective_until"`
-	CreatedAt     time.Time   `json:"created_at" db:"created_at"`
+	ID             int64       `json:"id" db:"id"`
+	ModelID        int64       `json:"model_id" db:"model_id"`
+	PricingType    PricingType `json:"pricing_type" db:"pricing_type"`
+	PricePerUnit   float64     `json:"price_per_unit" db:"price_per_unit"`
+	Multiplier     float64     `json:"multiplier" db:"multiplier"` // 价格倍率，默认1.5
+	Unit           PricingUnit `json:"unit" db:"unit"`
+	Currency       string      `json:"currency" db:"currency"`
+	EffectiveFrom  time.Time   `json:"effective_from" db:"effective_from"`
+	EffectiveUntil *time.Time  `json:"effective_until,omitempty" db:"effective_until"`
+	CreatedAt      time.Time   `json:"created_at" db:"created_at"`
 }
 
 // IsEffective 检查定价是否在有效期内
@@ -122,15 +123,26 @@ func (mp *ModelPricing) IsEffective(at time.Time) bool {
 	if at.Before(mp.EffectiveFrom) {
 		return false
 	}
-	
+
 	if mp.EffectiveUntil != nil && at.After(*mp.EffectiveUntil) {
 		return false
 	}
-	
+
 	return true
 }
 
-// CalculateCost 计算成本
+// CalculateCost 计算成本（应用倍率）
 func (mp *ModelPricing) CalculateCost(units int) float64 {
+	baseCost := float64(units) * mp.PricePerUnit
+	return baseCost * mp.Multiplier
+}
+
+// CalculateBaseCost 计算基础成本（不应用倍率）
+func (mp *ModelPricing) CalculateBaseCost(units int) float64 {
 	return float64(units) * mp.PricePerUnit
+}
+
+// GetFinalPrice 获取应用倍率后的最终单价
+func (mp *ModelPricing) GetFinalPrice() float64 {
+	return mp.PricePerUnit * mp.Multiplier
 }
