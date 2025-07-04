@@ -5,7 +5,11 @@ import (
 	"fmt"
 
 	"ai-api-gateway/internal/application/dto"
+	"ai-api-gateway/internal/domain/entities"
 	"ai-api-gateway/internal/domain/repositories"
+	redisInfra "ai-api-gateway/internal/infrastructure/redis"
+
+	"github.com/go-redis/redis/v8"
 )
 
 // UserService 用户服务接口
@@ -40,13 +44,17 @@ type UserService interface {
 
 // userServiceImpl 用户服务实现
 type userServiceImpl struct {
-	userRepo repositories.UserRepository
+	userRepo    repositories.UserRepository
+	cache       *redisInfra.CacheService
+	lockService *redisInfra.DistributedLockService
 }
 
 // NewUserService 创建用户服务
-func NewUserService(userRepo repositories.UserRepository) UserService {
+func NewUserService(userRepo repositories.UserRepository, cache *redisInfra.CacheService, lockService *redisInfra.DistributedLockService) UserService {
 	return &userServiceImpl{
-		userRepo: userRepo,
+		userRepo:    userRepo,
+		cache:       cache,
+		lockService: lockService,
 	}
 }
 
@@ -76,9 +84,29 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, req *dto.CreateUserReq
 
 // GetUser 获取用户
 func (s *userServiceImpl) GetUser(ctx context.Context, id int64) (*dto.UserResponse, error) {
+	// 尝试从缓存获取用户
+	if s.cache != nil {
+		var cachedUser entities.User
+		cacheKey := fmt.Sprintf("user:%d", id)
+		err := s.cache.Get(ctx, cacheKey, &cachedUser)
+		if err == nil {
+			// 缓存命中
+			return (&dto.UserResponse{}).FromEntity(&cachedUser), nil
+		}
+		// 缓存未命中，继续从数据库查询
+	}
+
+	// 从数据库获取用户
 	user, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+
+	// 将用户信息缓存5分钟
+	if s.cache != nil {
+		cacheKey := fmt.Sprintf("user:%d", id)
+		// 使用5分钟的缓存时间
+		s.cache.Set(ctx, cacheKey, user, 5*60*1000000000) // 5分钟的纳秒数
 	}
 
 	return (&dto.UserResponse{}).FromEntity(user), nil
@@ -86,9 +114,32 @@ func (s *userServiceImpl) GetUser(ctx context.Context, id int64) (*dto.UserRespo
 
 // GetUserByUsername 根据用户名获取用户
 func (s *userServiceImpl) GetUserByUsername(ctx context.Context, username string) (*dto.UserResponse, error) {
+	// 尝试从缓存获取用户
+	if s.cache != nil {
+		var cachedUser entities.User
+		cacheKey := fmt.Sprintf("user:username:%s", username)
+		err := s.cache.Get(ctx, cacheKey, &cachedUser)
+		if err == nil {
+			// 缓存命中
+			return (&dto.UserResponse{}).FromEntity(&cachedUser), nil
+		}
+		// 缓存未命中，继续从数据库查询
+	}
+
+	// 从数据库获取用户
 	user, err := s.userRepo.GetByUsername(ctx, username)
 	if err != nil {
 		return nil, err
+	}
+
+	// 将用户信息缓存5分钟
+	if s.cache != nil {
+		cacheKey := fmt.Sprintf("user:username:%s", username)
+		s.cache.Set(ctx, cacheKey, user, 5*60*1000000000) // 5分钟
+
+		// 同时缓存用户ID索引
+		userIDCacheKey := fmt.Sprintf("user:%d", user.ID)
+		s.cache.Set(ctx, userIDCacheKey, user, 5*60*1000000000) // 5分钟
 	}
 
 	return (&dto.UserResponse{}).FromEntity(user), nil
@@ -142,6 +193,21 @@ func (s *userServiceImpl) UpdateUser(ctx context.Context, id int64, req *dto.Upd
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
+	// 清除相关缓存
+	if s.cache != nil {
+		// 清除用户ID缓存
+		userIDCacheKey := fmt.Sprintf("user:%d", user.ID)
+		s.cache.Delete(ctx, userIDCacheKey)
+
+		// 清除用户名缓存
+		usernameCacheKey := fmt.Sprintf("user:username:%s", user.Username)
+		s.cache.Delete(ctx, usernameCacheKey)
+
+		// 如果邮箱有缓存，也清除
+		emailCacheKey := fmt.Sprintf("user:email:%s", user.Email)
+		s.cache.Delete(ctx, emailCacheKey)
+	}
+
 	return (&dto.UserResponse{}).FromEntity(user), nil
 }
 
@@ -188,10 +254,57 @@ func (s *userServiceImpl) ListUsers(ctx context.Context, pagination *dto.Paginat
 
 // UpdateBalance 更新用户余额
 func (s *userServiceImpl) UpdateBalance(ctx context.Context, id int64, req *dto.BalanceUpdateRequest) (*dto.UserResponse, error) {
-	// 获取用户
-	user, err := s.userRepo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
+	// 如果有分布式锁服务，使用锁保护余额更新
+	if s.lockService != nil {
+		lockKey := redisInfra.GetUserLockKey(id)
+		return s.updateBalanceWithLock(ctx, id, req, lockKey)
+	}
+
+	// 没有锁服务时的普通更新
+	return s.updateBalanceInternal(ctx, id, req)
+}
+
+// updateBalanceWithLock 使用分布式锁更新余额
+func (s *userServiceImpl) updateBalanceWithLock(ctx context.Context, id int64, req *dto.BalanceUpdateRequest, lockKey string) (*dto.UserResponse, error) {
+	var result *dto.UserResponse
+	var updateErr error
+
+	// 使用分布式锁执行余额更新
+	lockErr := s.lockService.WithLock(ctx, lockKey, nil, func() error {
+		result, updateErr = s.updateBalanceInternal(ctx, id, req)
+		return updateErr
+	})
+
+	if lockErr != nil {
+		if lockErr == redisInfra.ErrLockNotObtained {
+			return nil, fmt.Errorf("failed to obtain lock for user balance update, please try again")
+		}
+		return nil, fmt.Errorf("lock error during balance update: %w", lockErr)
+	}
+
+	return result, updateErr
+}
+
+// updateBalanceInternal 内部余额更新逻辑
+func (s *userServiceImpl) updateBalanceInternal(ctx context.Context, id int64, req *dto.BalanceUpdateRequest) (*dto.UserResponse, error) {
+	// 先尝试从缓存获取用户
+	var user *entities.User
+	var err error
+
+	if s.cache != nil {
+		user, err = s.cache.GetUser(ctx, id)
+		if err != nil && err != redis.Nil {
+			// 缓存错误，记录但继续从数据库获取
+			// 这里可以添加日志记录
+		}
+	}
+
+	// 如果缓存中没有，从数据库获取
+	if user == nil {
+		user, err = s.userRepo.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// 更新余额
@@ -208,9 +321,17 @@ func (s *userServiceImpl) UpdateBalance(ctx context.Context, id int64, req *dto.
 		return nil, fmt.Errorf("invalid operation: %s", req.Operation)
 	}
 
-	// 保存更新
+	// 保存更新到数据库
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, fmt.Errorf("failed to update user balance: %w", err)
+	}
+
+	// 更新缓存
+	if s.cache != nil {
+		if err := s.cache.SetUser(ctx, user); err != nil {
+			// 缓存更新失败，记录但不影响主流程
+			// 这里可以添加日志记录
+		}
 	}
 
 	return (&dto.UserResponse{}).FromEntity(user), nil

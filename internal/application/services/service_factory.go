@@ -2,26 +2,37 @@ package services
 
 import (
 	"ai-api-gateway/internal/infrastructure/logger"
+	redisInfra "ai-api-gateway/internal/infrastructure/redis"
 	"ai-api-gateway/internal/infrastructure/repositories"
 )
 
 // ServiceFactory 服务工厂
 type ServiceFactory struct {
-	repoFactory *repositories.RepositoryFactory
-	logger      logger.Logger
+	repoFactory  *repositories.RepositoryFactory
+	redisFactory *redisInfra.RedisFactory
+	logger       logger.Logger
 }
 
 // NewServiceFactory 创建服务工厂
-func NewServiceFactory(repoFactory *repositories.RepositoryFactory, log logger.Logger) *ServiceFactory {
+func NewServiceFactory(repoFactory *repositories.RepositoryFactory, redisFactory *redisInfra.RedisFactory, log logger.Logger) *ServiceFactory {
 	return &ServiceFactory{
-		repoFactory: repoFactory,
-		logger:      log,
+		repoFactory:  repoFactory,
+		redisFactory: redisFactory,
+		logger:       log,
 	}
 }
 
 // UserService 获取用户服务
 func (f *ServiceFactory) UserService() UserService {
-	return NewUserService(f.repoFactory.UserRepository())
+	var cache *redisInfra.CacheService
+	var lockService *redisInfra.DistributedLockService
+
+	if f.redisFactory != nil {
+		cache = f.redisFactory.GetCacheService()
+		lockService = f.redisFactory.GetLockService()
+	}
+
+	return NewUserService(f.repoFactory.UserRepository(), cache, lockService)
 }
 
 // APIKeyService 获取API密钥服务

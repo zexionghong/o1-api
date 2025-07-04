@@ -8,6 +8,7 @@ import (
 	"ai-api-gateway/internal/domain/entities"
 	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/domain/values"
+	redisInfra "ai-api-gateway/internal/infrastructure/redis"
 )
 
 // APIKeyService API密钥服务接口
@@ -45,6 +46,7 @@ type apiKeyServiceImpl struct {
 	apiKeyRepo repositories.APIKeyRepository
 	userRepo   repositories.UserRepository
 	keyGen     *values.APIKeyGenerator
+	cache      *redisInfra.CacheService
 }
 
 // NewAPIKeyService 创建API密钥服务
@@ -215,13 +217,34 @@ func (s *apiKeyServiceImpl) ValidateAPIKey(ctx context.Context, keyString string
 		return nil, nil, entities.ErrAPIKeyInvalid
 	}
 
-	// 直接通过密钥查询
-	apiKey, err := s.apiKeyRepo.GetByKey(ctx, keyString)
-	if err != nil {
-		if err == entities.ErrAPIKeyNotFound {
-			return nil, nil, entities.ErrAPIKeyInvalid
+	// 尝试从缓存获取API密钥
+	var apiKey *entities.APIKey
+	if s.cache != nil {
+		var cachedAPIKey entities.APIKey
+		cacheKey := fmt.Sprintf("api_key:%s", keyString)
+		err := s.cache.Get(ctx, cacheKey, &cachedAPIKey)
+		if err == nil {
+			// 缓存命中
+			apiKey = &cachedAPIKey
 		}
-		return nil, nil, err
+	}
+
+	// 如果缓存未命中，从数据库查询
+	if apiKey == nil {
+		var err error
+		apiKey, err = s.apiKeyRepo.GetByKey(ctx, keyString)
+		if err != nil {
+			if err == entities.ErrAPIKeyNotFound {
+				return nil, nil, entities.ErrAPIKeyInvalid
+			}
+			return nil, nil, err
+		}
+
+		// 将API密钥缓存10分钟
+		if s.cache != nil {
+			cacheKey := fmt.Sprintf("api_key:%s", keyString)
+			s.cache.Set(ctx, cacheKey, apiKey, 10*60*1000000000) // 10分钟
+		}
 	}
 
 	// 检查API密钥状态

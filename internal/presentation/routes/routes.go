@@ -11,6 +11,8 @@ import (
 	"ai-api-gateway/internal/presentation/middleware"
 
 	"github.com/gin-gonic/gin"
+
+	_ "ai-api-gateway/docs" // 导入swagger文档
 )
 
 // Router 路由器
@@ -67,6 +69,7 @@ func (r *Router) SetupRoutes() {
 	userHandler := handlers.NewUserHandler(r.serviceFactory.UserService(), r.logger)
 	apiKeyHandler := handlers.NewAPIKeyHandler(r.serviceFactory.APIKeyService(), r.logger)
 	healthHandler := handlers.NewHealthHandler(r.gatewayService, r.logger)
+	swaggerHandler := handlers.NewSwaggerHandler()
 
 	// 健康检查路由（无需认证）
 	health := r.engine.Group("/health")
@@ -80,6 +83,9 @@ func (r *Router) SetupRoutes() {
 
 	// 监控指标路由（无需认证）
 	r.engine.GET("/metrics", healthHandler.GetMetrics)
+
+	// Swagger文档路由（无需认证）
+	r.engine.GET("/swagger/*any", swaggerHandler.SwaggerUI)
 
 	// OpenAI兼容的API路由
 	v1 := r.engine.Group("/v1")

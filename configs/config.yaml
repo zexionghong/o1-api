@@ -57,3 +57,59 @@ billing:
   currency: "USD"
   precision: 6 # decimal places for cost calculations
   batch_size: 100 # batch size for billing record processing
+
+# Redis配置
+
+redis:
+  # Redis服务器地址
+  addr: "47.76.73.118:6379"
+  # Redis密码（如果有的话）
+  password: "QmpyOuWdwAHE"
+  # Redis数据库编号
+  db: 5
+  # 连接池大小
+  pool_size: 10
+  # 最小空闲连接数
+  min_idle_conns: 5
+  # 连接超时时间
+  dial_timeout: "5s"
+  # 读取超时时间
+  read_timeout: "3s"
+  # 写入超时时间
+  write_timeout: "3s"
+  # 连接池超时时间
+  pool_timeout: "4s"
+  # 空闲连接检查频率
+  idle_check_frequency: "60s"
+  # 空闲连接超时时间
+  idle_timeout: "5m"
+  # 最大连接存活时间
+  max_conn_age: "30m"
+
+# 缓存配置
+cache:
+  # 是否启用缓存
+  enabled: true
+  # 默认过期时间
+  default_ttl: "5m"
+  # 用户信息缓存时间
+  user_ttl: "10m"
+  # API密钥缓存时间
+  api_key_ttl: "15m"
+  # 模型信息缓存时间
+  model_ttl: "30m"
+  # 提供商信息缓存时间
+  provider_ttl: "30m"
+  # 配额信息缓存时间
+  quota_ttl: "1m"
+
+# 分布式锁配置
+distributed_lock:
+  # 是否启用分布式锁
+  enabled: true
+  # 锁的默认过期时间
+  default_ttl: "30s"
+  # 获取锁的重试间隔
+  retry_interval: "100ms"
+  # 获取锁的最大重试次数
+  max_retries: 10

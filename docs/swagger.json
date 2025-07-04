@@ -1,0 +1,241 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "AI API Gateway",
+    "description": "AI API Gateway是一个高性能的AI API网关，提供统一的API接口来访问多个AI提供商。\n\n主要功能：\n- 多AI提供商支持（OpenAI、Anthropic等）\n- 智能负载均衡和故障转移\n- 精确的配额管理和计费\n- 完整的认证和授权\n- 实时监控和统计",
+    "contact": {
+      "name": "AI API Gateway Team",
+      "email": "support@example.com",
+      "url": "https://example.com/support"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "host": "localhost:8080",
+  "basePath": "/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/admin/users": {
+      "get": {
+        "description": "获取用户列表",
+        "responses": {
+          "200": {
+            "description": "用户列表",
+            "schema": {
+              "$ref": "#/definitions/UsersListResponse"
+            }
+          }
+        },
+        "summary": "列出用户",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "创建新的用户账户",
+        "parameters": [
+          {
+            "description": "用户创建请求",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateUserRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "用户创建成功",
+            "schema": {
+              "$ref": "#/definitions/UserResponse"
+            }
+          },
+          "400": {
+            "description": "请求参数错误",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "summary": "创建用户",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "检查服务是否已准备好接收请求",
+        "responses": {
+          "200": {
+            "description": "服务就绪",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
+          },
+          "503": {
+            "description": "服务未就绪",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "summary": "就绪检查",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "description": "创建聊天补全请求，兼容OpenAI API格式",
+        "parameters": [
+          {
+            "description": "聊天补全请求",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChatCompletionRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "聊天补全响应",
+            "schema": {
+              "$ref": "#/definitions/ChatCompletionResponse"
+            }
+          },
+          "400": {
+            "description": "请求参数错误",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "认证失败",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "429": {
+            "description": "请求过于频繁",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "聊天补全",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "description": "获取可用的AI模型列表",
+        "responses": {
+          "200": {
+            "description": "模型列表",
+            "schema": {
+              "$ref": "#/definitions/ModelsResponse"
+            }
+          },
+          "401": {
+            "description": "认证失败",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "列出模型",
+        "tags": [
+          "ai"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "Error": {
+      "properties": {
+        "code": {
+          "example": "INVALID_REQUEST",
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        },
+        "message": {
+          "example": "请求参数无效",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "success": {
+          "example": false,
+          "type": "boolean"
+        },
+        "timestamp": {
+          "example": "2024-01-01T00:00:00Z",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "HealthResponse": {
+      "properties": {
+        "message": {
+          "example": "Service is healthy",
+          "type": "string"
+        },
+        "status": {
+          "example": "healthy",
+          "type": "string"
+        },
+        "success": {
+          "example": true,
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "description": "API密钥认证，格式：Bearer YOUR_API_KEY",
+      "in": "header",
+      "name": "Authorization",
+      "type": "apiKey"
+    }
+  }
+}

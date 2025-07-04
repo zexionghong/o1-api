@@ -16,8 +16,11 @@ import (
 	"ai-api-gateway/internal/infrastructure/database"
 	"ai-api-gateway/internal/infrastructure/gateway"
 	"ai-api-gateway/internal/infrastructure/logger"
+	"ai-api-gateway/internal/infrastructure/redis"
 	"ai-api-gateway/internal/infrastructure/repositories"
 	"ai-api-gateway/internal/presentation/routes"
+
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -52,8 +55,21 @@ func main() {
 	// 创建仓储工厂
 	repoFactory := repositories.NewRepositoryFactory(dbConn.DB())
 
+	// 创建Redis工厂（可选）
+	var redisFactory *redis.RedisFactory
+	if viper.GetBool("cache.enabled") || viper.GetBool("distributed_lock.enabled") {
+		var err error
+		redisFactory, err = redis.NewRedisFactory(log)
+		if err != nil {
+			log.WithFields(map[string]interface{}{
+				"error": err.Error(),
+			}).Warn("Failed to initialize Redis, continuing without cache and distributed locks")
+			redisFactory = nil
+		}
+	}
+
 	// 创建服务工厂
-	serviceFactory := services.NewServiceFactory(repoFactory, log)
+	serviceFactory := services.NewServiceFactory(repoFactory, redisFactory, log)
 
 	// 创建HTTP客户端
 	httpClient := clients.NewHTTPClient(30 * time.Second)
