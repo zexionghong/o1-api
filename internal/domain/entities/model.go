@@ -27,7 +27,6 @@ const (
 // Model AI模型实体
 type Model struct {
 	ID                int64       `json:"id" db:"id"`
-	ProviderID        int64       `json:"provider_id" db:"provider_id"`
 	Name              string      `json:"name" db:"name"`
 	Slug              string      `json:"slug" db:"slug"`
 	DisplayName       *string     `json:"display_name,omitempty" db:"display_name"`

@@ -14,10 +14,7 @@ type ModelRepository interface {
 	GetByID(ctx context.Context, id int64) (*entities.Model, error)
 
 	// GetBySlug 根据slug获取模型
-	GetBySlug(ctx context.Context, providerID int64, slug string) (*entities.Model, error)
-
-	// GetByProviderID 根据提供商ID获取模型列表
-	GetByProviderID(ctx context.Context, providerID int64) ([]*entities.Model, error)
+	GetBySlug(ctx context.Context, slug string) (*entities.Model, error)
 
 	// Update 更新模型
 	Update(ctx context.Context, model *entities.Model) error
@@ -37,8 +34,8 @@ type ModelRepository interface {
 	// GetModelsByType 根据类型获取模型列表
 	GetModelsByType(ctx context.Context, modelType entities.ModelType) ([]*entities.Model, error)
 
-	// GetAvailableModels 获取可用的模型列表（活跃且提供商可用）
-	GetAvailableModels(ctx context.Context, providerID int64) ([]*entities.Model, error)
+	// GetAvailableModels 获取可用的模型列表
+	GetAvailableModels(ctx context.Context) ([]*entities.Model, error)
 }
 
 // ModelPricingRepository 模型定价仓储接口

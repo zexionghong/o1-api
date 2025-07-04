@@ -83,12 +83,15 @@ func NewModelService(modelRepo repositories.ModelRepository, modelPricingRepo re
 
 func (s *modelServiceImpl) GetAvailableModels(ctx context.Context, providerID int64) ([]*entities.Model, error) {
 	// TODO: 实现获取可用的模型列表
-	return s.modelRepo.GetAvailableModels(ctx, providerID)
+	// 注意：现在模型不再直接绑定到提供商，需要通过 provider_model_support 表查询
+	// 这里暂时返回所有可用模型，实际应该根据 provider_model_support 过滤
+	return s.modelRepo.GetAvailableModels(ctx)
 }
 
 func (s *modelServiceImpl) GetModelBySlug(ctx context.Context, providerID int64, slug string) (*entities.Model, error) {
 	// TODO: 实现根据slug获取模型
-	return s.modelRepo.GetBySlug(ctx, providerID, slug)
+	// 注意：现在模型不再绑定到特定提供商，直接通过 slug 查询
+	return s.modelRepo.GetBySlug(ctx, slug)
 }
 
 // QuotaService 配额服务接口
