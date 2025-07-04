@@ -134,32 +134,7 @@ type BillingService interface {
 	ProcessBilling(ctx context.Context, usageLog *entities.UsageLog) error
 }
 
-// billingServiceImpl 计费服务存根实现
-type billingServiceImpl struct {
-	billingRepo      repositories.BillingRecordRepository
-	usageLogRepo     repositories.UsageLogRepository
-	modelPricingRepo repositories.ModelPricingRepository
-	userRepo         repositories.UserRepository
-}
-
-func NewBillingService(billingRepo repositories.BillingRecordRepository, usageLogRepo repositories.UsageLogRepository, modelPricingRepo repositories.ModelPricingRepository, userRepo repositories.UserRepository) BillingService {
-	return &billingServiceImpl{
-		billingRepo:      billingRepo,
-		usageLogRepo:     usageLogRepo,
-		modelPricingRepo: modelPricingRepo,
-		userRepo:         userRepo,
-	}
-}
-
-func (s *billingServiceImpl) CalculateCost(ctx context.Context, modelID int64, inputTokens, outputTokens int) (float64, error) {
-	// TODO: 实现成本计算
-	return 0.0, nil // 简单返回0成本
-}
-
-func (s *billingServiceImpl) ProcessBilling(ctx context.Context, usageLog *entities.UsageLog) error {
-	// TODO: 实现计费处理
-	return nil
-}
+// 计费服务实现已移至 billing_service_impl.go
 
 // UsageLogService 使用日志服务接口
 type UsageLogService interface {

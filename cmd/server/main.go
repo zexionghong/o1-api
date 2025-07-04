@@ -84,6 +84,7 @@ func main() {
 		serviceFactory.QuotaService(),
 		serviceFactory.BillingService(),
 		serviceFactory.UsageLogService(),
+		repoFactory.BillingRecordRepository(),
 		log,
 	)
 

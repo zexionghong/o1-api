@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"ai-api-gateway/internal/application/dto"
 	"ai-api-gateway/internal/application/services"
 	"ai-api-gateway/internal/domain/entities"
+	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/domain/values"
 	"ai-api-gateway/internal/infrastructure/clients"
 	"ai-api-gateway/internal/infrastructure/logger"
@@ -116,6 +118,7 @@ type gatewayServiceImpl struct {
 	quotaService    services.QuotaService
 	billingService  services.BillingService
 	usageLogService services.UsageLogService
+	billingRepo     repositories.BillingRecordRepository
 	logger          logger.Logger
 	startTime       time.Time
 	requestIDGen    *values.RequestIDGenerator
@@ -129,6 +132,7 @@ func NewGatewayService(
 	quotaService services.QuotaService,
 	billingService services.BillingService,
 	usageLogService services.UsageLogService,
+	billingRepo repositories.BillingRecordRepository,
 	logger logger.Logger,
 ) GatewayService {
 	return &gatewayServiceImpl{
@@ -138,6 +142,7 @@ func NewGatewayService(
 		quotaService:    quotaService,
 		billingService:  billingService,
 		usageLogService: usageLogService,
+		billingRepo:     billingRepo,
 		logger:          logger,
 		startTime:       time.Now(),
 		requestIDGen:    values.NewRequestIDGenerator(),
@@ -182,7 +187,7 @@ func (g *gatewayServiceImpl) ProcessRequest(ctx context.Context, request *Gatewa
 	routeResponse, err := g.router.RouteRequest(ctx, routeRequest)
 	if err != nil {
 		// 记录失败的使用日志
-		g.recordUsageLog(ctx, request, nil, nil, nil, time.Since(start), err)
+		g.recordUsageLog(ctx, request, nil, nil, nil, nil, time.Since(start), err)
 		return nil, fmt.Errorf("failed to route request: %w", err)
 	}
 
@@ -205,13 +210,15 @@ func (g *gatewayServiceImpl) ProcessRequest(ctx context.Context, request *Gatewa
 	}
 
 	// 记录使用日志
-	g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, routeResponse.Duration, nil)
+	usageLog := g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, cost, routeResponse.Duration, nil)
 
 	// 消费配额
 	g.consumeQuotas(ctx, request.UserID, usage, cost)
 
 	// 处理计费
-	g.processBilling(ctx, request.UserID, cost.TotalCost)
+	if usageLog != nil {
+		g.processBilling(ctx, request.UserID, usageLog.ID, cost.TotalCost)
+	}
 
 	response := &GatewayResponse{
 		Response:  routeResponse.Response,
@@ -255,7 +262,7 @@ func (g *gatewayServiceImpl) calculateCost(ctx context.Context, modelID int64, i
 }
 
 // recordUsageLog 记录使用日志
-func (g *gatewayServiceImpl) recordUsageLog(ctx context.Context, request *GatewayRequest, provider *entities.Provider, model *entities.Model, usage *UsageInfo, duration time.Duration, requestError error) {
+func (g *gatewayServiceImpl) recordUsageLog(ctx context.Context, request *GatewayRequest, provider *entities.Provider, model *entities.Model, usage *UsageInfo, cost *CostInfo, duration time.Duration, requestError error) *entities.UsageLog {
 	usageLog := &entities.UsageLog{
 		UserID:     request.UserID,
 		APIKeyID:   request.APIKeyID,
@@ -280,6 +287,10 @@ func (g *gatewayServiceImpl) recordUsageLog(ctx context.Context, request *Gatewa
 		usageLog.TotalTokens = usage.TotalTokens
 	}
 
+	if cost != nil {
+		usageLog.Cost = cost.TotalCost
+	}
+
 	if requestError != nil {
 		usageLog.StatusCode = 500
 		errorMsg := requestError.Error()
@@ -293,7 +304,10 @@ func (g *gatewayServiceImpl) recordUsageLog(ctx context.Context, request *Gatewa
 			"request_id": request.RequestID,
 			"error":      err.Error(),
 		}).Error("Failed to create usage log")
+		return nil
 	}
+
+	return usageLog
 }
 
 // consumeQuotas 消费配额
@@ -330,14 +344,84 @@ func (g *gatewayServiceImpl) consumeQuotas(ctx context.Context, userID int64, us
 }
 
 // processBilling 处理计费
-func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, cost float64) {
+func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, usageLogID int64, cost float64) {
 	if cost <= 0 {
 		return
 	}
 
-	// 简化处理：直接扣减用户余额
-	// 实际应该创建计费记录并异步处理
-	// TODO: 实现完整的计费流程
+	// 获取用户信息
+	user, err := g.userService.GetUser(ctx, userID)
+	if err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id": userID,
+			"cost":    cost,
+			"error":   err.Error(),
+		}).Error("Failed to get user for billing")
+		return
+	}
+
+	// 检查用户余额
+	if user.Balance < cost {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id": userID,
+			"balance": user.Balance,
+			"cost":    cost,
+		}).Warn("Insufficient balance for billing")
+		return
+	}
+
+	// 扣减用户余额
+	updateReq := &dto.BalanceUpdateRequest{
+		Amount:      cost,
+		Operation:   "deduct",
+		Description: fmt.Sprintf("API usage cost: %.8f USD", cost),
+	}
+
+	_, err = g.userService.UpdateBalance(ctx, userID, updateReq)
+	if err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id": userID,
+			"cost":    cost,
+			"error":   err.Error(),
+		}).Error("Failed to deduct user balance")
+		return
+	}
+
+	// 创建计费记录
+	description := fmt.Sprintf("API usage cost: %.8f USD", cost)
+	processedAt := time.Now()
+	billingRecord := &entities.BillingRecord{
+		UserID:      userID,
+		UsageLogID:  usageLogID,
+		Amount:      cost,
+		Currency:    "USD",
+		BillingType: entities.BillingTypeUsage,
+		Description: &description,
+		ProcessedAt: &processedAt,
+		Status:      entities.BillingStatusProcessed,
+	}
+
+	// 创建计费记录
+	if err := g.billingRepo.Create(ctx, billingRecord); err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id": userID,
+			"cost":    cost,
+			"error":   err.Error(),
+		}).Error("Failed to create billing record")
+		// 不返回错误，因为余额已经扣减成功
+	} else {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id":           userID,
+			"billing_record_id": billingRecord.ID,
+			"amount":            cost,
+		}).Info("Billing record created successfully")
+	}
+
+	g.logger.WithFields(map[string]interface{}{
+		"user_id":     userID,
+		"cost":        cost,
+		"new_balance": user.Balance - cost,
+	}).Info("Billing processed successfully")
 }
 
 // processQuotaConsumption 处理配额消费
@@ -441,13 +525,15 @@ func (g *gatewayServiceImpl) recordStreamUsage(ctx context.Context, request *Gat
 	}
 
 	// 记录使用日志
-	g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, routeResponse.Duration, nil)
+	usageLog := g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, cost, routeResponse.Duration, nil)
 
 	// 处理配额消费
 	g.processQuotaConsumption(ctx, request.UserID, usage.TotalTokens, cost.TotalCost)
 
 	// 处理计费
-	g.processBilling(ctx, request.UserID, cost.TotalCost)
+	if usageLog != nil {
+		g.processBilling(ctx, request.UserID, usageLog.ID, cost.TotalCost)
+	}
 }
 
 // GetStats 获取统计信息
