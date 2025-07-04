@@ -18,28 +18,33 @@ var (
 
 // API密钥相关错误
 var (
-	ErrAPIKeyNotFound    = errors.New("api key not found")
-	ErrAPIKeyInactive    = errors.New("api key is inactive")
-	ErrAPIKeyExpired     = errors.New("api key has expired")
-	ErrAPIKeyRevoked     = errors.New("api key has been revoked")
-	ErrAPIKeyInvalid     = errors.New("invalid api key")
-	ErrPermissionDenied  = errors.New("permission denied")
+	ErrAPIKeyNotFound   = errors.New("api key not found")
+	ErrAPIKeyInactive   = errors.New("api key is inactive")
+	ErrAPIKeyExpired    = errors.New("api key has expired")
+	ErrAPIKeyRevoked    = errors.New("api key has been revoked")
+	ErrAPIKeyInvalid    = errors.New("invalid api key")
+	ErrPermissionDenied = errors.New("permission denied")
 )
 
 // 提供商相关错误
 var (
-	ErrProviderNotFound     = errors.New("provider not found")
-	ErrProviderUnavailable  = errors.New("provider is unavailable")
-	ErrProviderUnhealthy    = errors.New("provider is unhealthy")
-	ErrNoAvailableProvider  = errors.New("no available provider")
+	ErrProviderNotFound    = errors.New("provider not found")
+	ErrProviderUnavailable = errors.New("provider is unavailable")
+	ErrProviderUnhealthy   = errors.New("provider is unhealthy")
+	ErrNoAvailableProvider = errors.New("no available provider")
 )
 
 // 模型相关错误
 var (
-	ErrModelNotFound      = errors.New("model not found")
-	ErrModelUnavailable   = errors.New("model is unavailable")
-	ErrModelNotSupported  = errors.New("model is not supported")
-	ErrInvalidModelType   = errors.New("invalid model type")
+	ErrModelNotFound     = errors.New("model not found")
+	ErrModelUnavailable  = errors.New("model is unavailable")
+	ErrModelNotSupported = errors.New("model is not supported")
+	ErrInvalidModelType  = errors.New("invalid model type")
+)
+
+// 提供商模型支持相关错误
+var (
+	ErrProviderModelSupportNotFound = errors.New("provider model support not found")
 )
 
 // 配额相关错误
@@ -60,10 +65,10 @@ var (
 
 // 业务逻辑错误
 var (
-	ErrOperationFailed    = errors.New("operation failed")
-	ErrConcurrentUpdate   = errors.New("concurrent update detected")
-	ErrResourceLocked     = errors.New("resource is locked")
-	ErrInvalidOperation   = errors.New("invalid operation")
+	ErrOperationFailed  = errors.New("operation failed")
+	ErrConcurrentUpdate = errors.New("concurrent update detected")
+	ErrResourceLocked   = errors.New("resource is locked")
+	ErrInvalidOperation = errors.New("invalid operation")
 )
 
 // DomainError 领域错误接口

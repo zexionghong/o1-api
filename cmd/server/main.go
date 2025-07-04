@@ -87,6 +87,7 @@ func main() {
 	requestRouter := gateway.NewRequestRouter(
 		serviceFactory.ProviderService(),
 		serviceFactory.ModelService(),
+		repoFactory.ProviderModelSupportRepository(),
 		loadBalancer,
 		aiClient,
 		log,

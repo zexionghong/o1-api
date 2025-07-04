@@ -43,6 +43,11 @@ func (f *RepositoryFactory) ModelPricingRepository() repositories.ModelPricingRe
 	return NewModelPricingRepository(f.db)
 }
 
+// ProviderModelSupportRepository 获取提供商模型支持仓储
+func (f *RepositoryFactory) ProviderModelSupportRepository() repositories.ProviderModelSupportRepository {
+	return NewProviderModelSupportRepository(f.db)
+}
+
 // QuotaRepository 获取配额仓储
 func (f *RepositoryFactory) QuotaRepository() repositories.QuotaRepository {
 	return NewQuotaRepository(f.db)

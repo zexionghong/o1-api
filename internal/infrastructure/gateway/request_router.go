@@ -7,6 +7,7 @@ import (
 
 	"ai-api-gateway/internal/application/services"
 	"ai-api-gateway/internal/domain/entities"
+	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/domain/values"
 	"ai-api-gateway/internal/infrastructure/clients"
 	"ai-api-gateway/internal/infrastructure/logger"
@@ -48,29 +49,32 @@ type RouteResponse struct {
 
 // requestRouterImpl 请求路由器实现
 type requestRouterImpl struct {
-	providerService services.ProviderService
-	modelService    services.ModelService
-	loadBalancer    LoadBalancer
-	aiClient        clients.AIProviderClient
-	logger          logger.Logger
-	requestIDGen    *values.RequestIDGenerator
+	providerService          services.ProviderService
+	modelService             services.ModelService
+	providerModelSupportRepo repositories.ProviderModelSupportRepository
+	loadBalancer             LoadBalancer
+	aiClient                 clients.AIProviderClient
+	logger                   logger.Logger
+	requestIDGen             *values.RequestIDGenerator
 }
 
 // NewRequestRouter 创建请求路由器
 func NewRequestRouter(
 	providerService services.ProviderService,
 	modelService services.ModelService,
+	providerModelSupportRepo repositories.ProviderModelSupportRepository,
 	loadBalancer LoadBalancer,
 	aiClient clients.AIProviderClient,
 	logger logger.Logger,
 ) RequestRouter {
 	return &requestRouterImpl{
-		providerService: providerService,
-		modelService:    modelService,
-		loadBalancer:    loadBalancer,
-		aiClient:        aiClient,
-		logger:          logger,
-		requestIDGen:    values.NewRequestIDGenerator(),
+		providerService:          providerService,
+		modelService:             modelService,
+		providerModelSupportRepo: providerModelSupportRepo,
+		loadBalancer:             loadBalancer,
+		aiClient:                 aiClient,
+		logger:                   logger,
+		requestIDGen:             values.NewRequestIDGenerator(),
 	}
 }
 
@@ -207,33 +211,30 @@ func (r *requestRouterImpl) RouteRequest(ctx context.Context, request *RouteRequ
 
 // GetAvailableProviders 获取可用的提供商
 func (r *requestRouterImpl) GetAvailableProviders(ctx context.Context, modelSlug string) ([]*entities.Provider, error) {
-	// 获取所有可用的提供商
-	allProviders, err := r.providerService.GetAvailableProviders(ctx)
+	// 直接从 provider_model_support 表查询支持指定模型的提供商
+	supportInfos, err := r.providerModelSupportRepo.GetSupportingProviders(ctx, modelSlug)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get providers: %w", err)
+		return nil, fmt.Errorf("failed to get supporting providers for model %s: %w", modelSlug, err)
 	}
 
-	// 过滤支持指定模型的提供商
+	if len(supportInfos) == 0 {
+		r.logger.WithField("model_slug", modelSlug).Info("No providers support this model")
+		return []*entities.Provider{}, nil
+	}
+
+	// 提取提供商列表，按优先级排序（GetSupportingProviders 已经排序了）
 	var availableProviders []*entities.Provider
-	for _, provider := range allProviders {
-		// 检查提供商是否支持该模型
-		models, err := r.modelService.GetAvailableModels(ctx, provider.ID)
-		if err != nil {
-			r.logger.WithFields(map[string]interface{}{
-				"provider_id": provider.ID,
-				"error":       err.Error(),
-			}).Warn("Failed to get models for provider")
-			continue
-		}
-
-		// 检查是否有匹配的模型
-		for _, model := range models {
-			if model.Slug == modelSlug {
-				availableProviders = append(availableProviders, provider)
-				break
-			}
+	for _, supportInfo := range supportInfos {
+		if supportInfo.IsAvailable() {
+			availableProviders = append(availableProviders, supportInfo.Provider)
 		}
 	}
+
+	r.logger.WithFields(map[string]interface{}{
+		"model_slug":          modelSlug,
+		"total_supports":      len(supportInfos),
+		"available_providers": len(availableProviders),
+	}).Debug("Found supporting providers for model")
 
 	return availableProviders, nil
 }
