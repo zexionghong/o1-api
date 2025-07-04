@@ -186,7 +186,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/clients.AIRequest"
+                            "$ref": "#/definitions/clients.ChatCompletionRequest"
                         }
                     }
                 ],
@@ -249,7 +249,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/clients.AIRequest"
+                            "$ref": "#/definitions/clients.CompletionRequest"
                         }
                     }
                 ],
@@ -343,7 +343,7 @@ const docTemplate = `{
                     "200": {
                         "description": "使用统计信息",
                         "schema": {
-                            "$ref": "#/definitions/clients.UsageResponse"
+                            "$ref": "#/definitions/dto.UsageResponse"
                         }
                     },
                     "401": {
@@ -396,12 +396,23 @@ const docTemplate = `{
         },
         "clients.AIMessage": {
             "type": "object",
+            "required": [
+                "content",
+                "role"
+            ],
             "properties": {
                 "content": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Hello, how are you?"
                 },
                 "role": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "system",
+                        "user",
+                        "assistant"
+                    ],
+                    "example": "user"
                 }
             }
         },
@@ -423,32 +434,6 @@ const docTemplate = `{
                 "permission": {
                     "type": "array",
                     "items": {}
-                }
-            }
-        },
-        "clients.AIRequest": {
-            "type": "object",
-            "properties": {
-                "max_tokens": {
-                    "type": "integer"
-                },
-                "messages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/clients.AIMessage"
-                    }
-                },
-                "model": {
-                    "type": "string"
-                },
-                "prompt": {
-                    "type": "string"
-                },
-                "stream": {
-                    "type": "boolean"
-                },
-                "temperature": {
-                    "type": "number"
                 }
             }
         },
@@ -495,6 +480,67 @@ const docTemplate = `{
                 }
             }
         },
+        "clients.ChatCompletionRequest": {
+            "type": "object",
+            "required": [
+                "messages",
+                "model"
+            ],
+            "properties": {
+                "max_tokens": {
+                    "type": "integer",
+                    "example": 150
+                },
+                "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/clients.AIMessage"
+                    }
+                },
+                "model": {
+                    "type": "string",
+                    "example": "gpt-3.5-turbo"
+                },
+                "stream": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "temperature": {
+                    "type": "number",
+                    "example": 0.7
+                }
+            }
+        },
+        "clients.CompletionRequest": {
+            "type": "object",
+            "required": [
+                "model",
+                "prompt"
+            ],
+            "properties": {
+                "max_tokens": {
+                    "type": "integer",
+                    "example": 150
+                },
+                "model": {
+                    "type": "string",
+                    "example": "gpt-3.5-turbo"
+                },
+                "prompt": {
+                    "type": "string",
+                    "example": "Once upon a time"
+                },
+                "stream": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "temperature": {
+                    "type": "number",
+                    "example": 0.7
+                }
+            }
+        },
         "clients.ModelsResponse": {
             "type": "object",
             "properties": {
@@ -506,20 +552,6 @@ const docTemplate = `{
                 },
                 "object": {
                     "type": "string"
-                }
-            }
-        },
-        "clients.UsageResponse": {
-            "type": "object",
-            "properties": {
-                "total_cost": {
-                    "type": "number"
-                },
-                "total_requests": {
-                    "type": "integer"
-                },
-                "total_tokens": {
-                    "type": "integer"
                 }
             }
         },
@@ -553,6 +585,23 @@ const docTemplate = `{
                 },
                 "timestamp": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.UsageResponse": {
+            "type": "object",
+            "properties": {
+                "total_cost": {
+                    "type": "number",
+                    "example": 1.25
+                },
+                "total_requests": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "total_tokens": {
+                    "type": "integer",
+                    "example": 5000
                 }
             }
         }

@@ -23,9 +23,18 @@ definitions:
   clients.AIMessage:
     properties:
       content:
+        example: Hello, how are you?
         type: string
       role:
+        enum:
+        - system
+        - user
+        - assistant
+        example: user
         type: string
+    required:
+    - content
+    - role
     type: object
   clients.AIModel:
     properties:
@@ -40,23 +49,6 @@ definitions:
       permission:
         items: {}
         type: array
-    type: object
-  clients.AIRequest:
-    properties:
-      max_tokens:
-        type: integer
-      messages:
-        items:
-          $ref: '#/definitions/clients.AIMessage'
-        type: array
-      model:
-        type: string
-      prompt:
-        type: string
-      stream:
-        type: boolean
-      temperature:
-        type: number
     type: object
   clients.AIResponse:
     properties:
@@ -86,6 +78,50 @@ definitions:
       total_tokens:
         type: integer
     type: object
+  clients.ChatCompletionRequest:
+    properties:
+      max_tokens:
+        example: 150
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/clients.AIMessage'
+        minItems: 1
+        type: array
+      model:
+        example: gpt-3.5-turbo
+        type: string
+      stream:
+        example: false
+        type: boolean
+      temperature:
+        example: 0.7
+        type: number
+    required:
+    - messages
+    - model
+    type: object
+  clients.CompletionRequest:
+    properties:
+      max_tokens:
+        example: 150
+        type: integer
+      model:
+        example: gpt-3.5-turbo
+        type: string
+      prompt:
+        example: Once upon a time
+        type: string
+      stream:
+        example: false
+        type: boolean
+      temperature:
+        example: 0.7
+        type: number
+    required:
+    - model
+    - prompt
+    type: object
   clients.ModelsResponse:
     properties:
       data:
@@ -94,15 +130,6 @@ definitions:
         type: array
       object:
         type: string
-    type: object
-  clients.UsageResponse:
-    properties:
-      total_cost:
-        type: number
-      total_requests:
-        type: integer
-      total_tokens:
-        type: integer
     type: object
   dto.ErrorInfo:
     properties:
@@ -125,6 +152,18 @@ definitions:
         type: boolean
       timestamp:
         type: string
+    type: object
+  dto.UsageResponse:
+    properties:
+      total_cost:
+        example: 1.25
+        type: number
+      total_requests:
+        example: 100
+        type: integer
+      total_tokens:
+        example: 5000
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -244,7 +283,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/clients.AIRequest'
+          $ref: '#/definitions/clients.ChatCompletionRequest'
       produces:
       - application/json
       responses:
@@ -284,7 +323,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/clients.AIRequest'
+          $ref: '#/definitions/clients.CompletionRequest'
       produces:
       - application/json
       responses:
@@ -345,7 +384,7 @@ paths:
         "200":
           description: 使用统计信息
           schema:
-            $ref: '#/definitions/clients.UsageResponse'
+            $ref: '#/definitions/dto.UsageResponse'
         "401":
           description: 认证失败
           schema:

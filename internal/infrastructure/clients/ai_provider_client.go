@@ -20,7 +20,7 @@ type AIProviderClient interface {
 	GetModels(ctx context.Context, provider *entities.Provider) ([]*AIModel, error)
 }
 
-// AIRequest AI请求
+// AIRequest AI请求 (通用结构)
 type AIRequest struct {
 	Model       string                 `json:"model"`
 	Messages    []AIMessage            `json:"messages,omitempty"`
@@ -31,10 +31,28 @@ type AIRequest struct {
 	Extra       map[string]interface{} `json:"-"` // 额外参数
 }
 
+// ChatCompletionRequest 聊天补全请求
+type ChatCompletionRequest struct {
+	Model       string      `json:"model" binding:"required" example:"gpt-3.5-turbo"`
+	Messages    []AIMessage `json:"messages" binding:"required,min=1"`
+	MaxTokens   int         `json:"max_tokens,omitempty" example:"150"`
+	Temperature float64     `json:"temperature,omitempty" example:"0.7"`
+	Stream      bool        `json:"stream,omitempty" example:"false"`
+}
+
+// CompletionRequest 文本补全请求
+type CompletionRequest struct {
+	Model       string  `json:"model" binding:"required" example:"gpt-3.5-turbo"`
+	Prompt      string  `json:"prompt" binding:"required" example:"Once upon a time"`
+	MaxTokens   int     `json:"max_tokens,omitempty" example:"150"`
+	Temperature float64 `json:"temperature,omitempty" example:"0.7"`
+	Stream      bool    `json:"stream,omitempty" example:"false"`
+}
+
 // AIMessage AI消息
 type AIMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role    string `json:"role" binding:"required" example:"user" enums:"system,user,assistant"`
+	Content string `json:"content" binding:"required" example:"Hello, how are you?"`
 }
 
 // AIResponse AI响应

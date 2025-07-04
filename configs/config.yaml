@@ -28,20 +28,24 @@ providers:
   openai:
     name: "OpenAI"
     base_url: "https://api.openai.com/v1"
+    # api_key: "your_real_openai_api_key"  # 取消注释并填入真实密钥
     enabled: true
     priority: 1
     timeout: 30s
     retry_attempts: 3
     health_check_interval: 60s
-  
+    mock_mode: true  # 启用模拟模式用于测试
+
   anthropic:
     name: "Anthropic"
     base_url: "https://api.anthropic.com/v1"
+    # api_key: "your_real_anthropic_api_key"  # 取消注释并填入真实密钥
     enabled: true
     priority: 2
     timeout: 30s
     retry_attempts: 3
     health_check_interval: 60s
+    mock_mode: true  # 启用模拟模式用于测试
 
 load_balancer:
   strategy: "round_robin" # round_robin, weighted, least_connections

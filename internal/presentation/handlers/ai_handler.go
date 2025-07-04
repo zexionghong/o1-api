@@ -90,6 +90,16 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 				}
 				w.Flush()
 
+				// 输出流式AI提供商响应结果
+				h.logger.WithFields(map[string]interface{}{
+					"request_id":   requestID,
+					"user_id":      userID,
+					"api_key_id":   apiKeyID,
+					"total_tokens": totalTokens,
+					"total_cost":   totalCost,
+					"stream_type":  "completed",
+				}).Info("AI provider streaming response completed successfully")
+
 				// 设置使用量到上下文
 				c.Set("tokens_used", totalTokens)
 				c.Set("cost_used", totalCost)
@@ -185,7 +195,7 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param body body clients.AIRequest true "聊天补全请求"
+// @Param body body clients.ChatCompletionRequest true "聊天补全请求"
 // @Success 200 {object} clients.AIResponse "聊天补全响应"
 // @Failure 400 {object} dto.Response "请求参数错误"
 // @Failure 401 {object} dto.Response "认证失败"
@@ -215,8 +225,8 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 	}
 
 	// 解析请求体
-	var aiRequest clients.AIRequest
-	if err := c.ShouldBindJSON(&aiRequest); err != nil {
+	var chatRequest clients.ChatCompletionRequest
+	if err := c.ShouldBindJSON(&chatRequest); err != nil {
 		h.logger.WithFields(map[string]interface{}{
 			"user_id":    userID,
 			"api_key_id": apiKeyID,
@@ -234,7 +244,7 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 	}
 
 	// 验证必需字段
-	if aiRequest.Model == "" {
+	if chatRequest.Model == "" {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
 			"MISSING_MODEL",
 			"Model is required",
@@ -243,10 +253,10 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 		return
 	}
 
-	if len(aiRequest.Messages) == 0 && aiRequest.Prompt == "" {
+	if len(chatRequest.Messages) == 0 {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
-			"MISSING_INPUT",
-			"Either messages or prompt is required",
+			"MISSING_MESSAGES",
+			"Messages array is required for chat completions",
 			nil,
 		))
 		return
@@ -255,12 +265,21 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 	// 获取请求ID
 	requestID := middleware.GetRequestIDFromContext(c)
 
+	// 转换为通用 AIRequest 结构
+	aiRequest := &clients.AIRequest{
+		Model:       chatRequest.Model,
+		Messages:    chatRequest.Messages,
+		MaxTokens:   chatRequest.MaxTokens,
+		Temperature: chatRequest.Temperature,
+		Stream:      chatRequest.Stream,
+	}
+
 	// 构造网关请求
 	gatewayRequest := &gateway.GatewayRequest{
 		UserID:    userID,
 		APIKeyID:  apiKeyID,
 		ModelSlug: aiRequest.Model,
-		Request:   &aiRequest,
+		Request:   aiRequest,
 		RequestID: requestID,
 	}
 
@@ -291,6 +310,21 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 		return
 	}
 
+	// 输出AI提供商响应结果
+	h.logger.WithFields(map[string]interface{}{
+		"request_id":    requestID,
+		"user_id":       userID,
+		"api_key_id":    apiKeyID,
+		"model":         aiRequest.Model,
+		"provider":      response.Provider,
+		"duration_ms":   response.Duration.Milliseconds(),
+		"total_tokens":  response.Usage.TotalTokens,
+		"input_tokens":  response.Usage.InputTokens,
+		"output_tokens": response.Usage.OutputTokens,
+		"total_cost":    response.Cost.TotalCost,
+		"response_data": response.Response,
+	}).Info("AI provider response received successfully")
+
 	// 设置使用量到上下文（用于配额中间件）
 	c.Set("tokens_used", response.Usage.TotalTokens)
 	c.Set("cost_used", response.Cost.TotalCost)
@@ -312,7 +346,7 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param body body clients.AIRequest true "文本补全请求"
+// @Param body body clients.CompletionRequest true "文本补全请求"
 // @Success 200 {object} clients.AIResponse "文本补全响应"
 // @Failure 400 {object} dto.Response "请求参数错误"
 // @Failure 401 {object} dto.Response "认证失败"
@@ -342,8 +376,8 @@ func (h *AIHandler) Completions(c *gin.Context) {
 	}
 
 	// 解析请求体
-	var aiRequest clients.AIRequest
-	if err := c.ShouldBindJSON(&aiRequest); err != nil {
+	var completionRequest clients.CompletionRequest
+	if err := c.ShouldBindJSON(&completionRequest); err != nil {
 		h.logger.WithFields(map[string]interface{}{
 			"user_id":    userID,
 			"api_key_id": apiKeyID,
@@ -361,7 +395,7 @@ func (h *AIHandler) Completions(c *gin.Context) {
 	}
 
 	// 验证必需字段
-	if aiRequest.Model == "" {
+	if completionRequest.Model == "" {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
 			"MISSING_MODEL",
 			"Model is required",
@@ -370,7 +404,7 @@ func (h *AIHandler) Completions(c *gin.Context) {
 		return
 	}
 
-	if aiRequest.Prompt == "" {
+	if completionRequest.Prompt == "" {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
 			"MISSING_PROMPT",
 			"Prompt is required",
@@ -382,12 +416,21 @@ func (h *AIHandler) Completions(c *gin.Context) {
 	// 获取请求ID
 	requestID := middleware.GetRequestIDFromContext(c)
 
+	// 转换为通用 AIRequest 结构
+	aiRequest := &clients.AIRequest{
+		Model:       completionRequest.Model,
+		Prompt:      completionRequest.Prompt,
+		MaxTokens:   completionRequest.MaxTokens,
+		Temperature: completionRequest.Temperature,
+		Stream:      completionRequest.Stream,
+	}
+
 	// 构造网关请求
 	gatewayRequest := &gateway.GatewayRequest{
 		UserID:    userID,
 		APIKeyID:  apiKeyID,
 		ModelSlug: aiRequest.Model,
-		Request:   &aiRequest,
+		Request:   aiRequest,
 		RequestID: requestID,
 	}
 
@@ -411,6 +454,21 @@ func (h *AIHandler) Completions(c *gin.Context) {
 		))
 		return
 	}
+
+	// 输出AI提供商响应结果
+	h.logger.WithFields(map[string]interface{}{
+		"request_id":    requestID,
+		"user_id":       userID,
+		"api_key_id":    apiKeyID,
+		"model":         aiRequest.Model,
+		"provider":      response.Provider,
+		"duration_ms":   response.Duration.Milliseconds(),
+		"total_tokens":  response.Usage.TotalTokens,
+		"input_tokens":  response.Usage.InputTokens,
+		"output_tokens": response.Usage.OutputTokens,
+		"total_cost":    response.Cost.TotalCost,
+		"response_data": response.Response,
+	}).Info("AI provider response received successfully")
 
 	// 设置使用量到上下文（用于配额中间件）
 	c.Set("tokens_used", response.Usage.TotalTokens)

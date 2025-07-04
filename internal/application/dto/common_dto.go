@@ -103,3 +103,10 @@ type StatsResponse struct {
 	TotalModels    int64 `json:"total_models"`
 	TotalRequests  int64 `json:"total_requests"`
 }
+
+// UsageResponse 使用情况响应
+type UsageResponse struct {
+	TotalRequests int     `json:"total_requests" example:"100"`
+	TotalTokens   int     `json:"total_tokens" example:"5000"`
+	TotalCost     float64 `json:"total_cost" example:"1.25"`
+}
