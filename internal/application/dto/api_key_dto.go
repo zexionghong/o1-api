@@ -1,44 +1,44 @@
 package dto
 
 import (
-	"time"
 	"ai-api-gateway/internal/domain/entities"
+	"time"
 )
 
 // CreateAPIKeyRequest 创建API密钥请求
 type CreateAPIKeyRequest struct {
-	UserID      int64                          `json:"user_id" validate:"required"`
-	Name        string                         `json:"name" validate:"required,min=1,max=100"`
-	Permissions *entities.APIKeyPermissions   `json:"permissions,omitempty"`
-	ExpiresAt   *time.Time                     `json:"expires_at,omitempty"`
+	UserID      int64                       `json:"user_id" validate:"required"`
+	Name        string                      `json:"name" validate:"required,min=1,max=100"`
+	Permissions *entities.APIKeyPermissions `json:"permissions,omitempty"`
+	ExpiresAt   *time.Time                  `json:"expires_at,omitempty"`
 }
 
 // UpdateAPIKeyRequest 更新API密钥请求
 type UpdateAPIKeyRequest struct {
-	Name        *string                        `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
-	Status      *entities.APIKeyStatus         `json:"status,omitempty"`
-	Permissions *entities.APIKeyPermissions   `json:"permissions,omitempty"`
-	ExpiresAt   *time.Time                     `json:"expires_at,omitempty"`
+	Name        *string                     `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
+	Status      *entities.APIKeyStatus      `json:"status,omitempty"`
+	Permissions *entities.APIKeyPermissions `json:"permissions,omitempty"`
+	ExpiresAt   *time.Time                  `json:"expires_at,omitempty"`
 }
 
 // APIKeyResponse API密钥响应
 type APIKeyResponse struct {
-	ID          int64                        `json:"id"`
-	UserID      int64                        `json:"user_id"`
-	KeyPrefix   string                       `json:"key_prefix"`
-	Name        *string                      `json:"name,omitempty"`
-	Status      entities.APIKeyStatus        `json:"status"`
+	ID          int64                       `json:"id"`
+	UserID      int64                       `json:"user_id"`
+	Key         string                      `json:"key"` // 完整的API密钥
+	KeyPrefix   string                      `json:"key_prefix"`
+	Name        *string                     `json:"name,omitempty"`
+	Status      entities.APIKeyStatus       `json:"status"`
 	Permissions *entities.APIKeyPermissions `json:"permissions,omitempty"`
-	ExpiresAt   *time.Time                   `json:"expires_at,omitempty"`
-	LastUsedAt  *time.Time                   `json:"last_used_at,omitempty"`
-	CreatedAt   time.Time                    `json:"created_at"`
-	UpdatedAt   time.Time                    `json:"updated_at"`
+	ExpiresAt   *time.Time                  `json:"expires_at,omitempty"`
+	LastUsedAt  *time.Time                  `json:"last_used_at,omitempty"`
+	CreatedAt   time.Time                   `json:"created_at"`
+	UpdatedAt   time.Time                   `json:"updated_at"`
 }
 
-// APIKeyCreateResponse API密钥创建响应（包含完整密钥）
+// APIKeyCreateResponse API密钥创建响应
 type APIKeyCreateResponse struct {
 	*APIKeyResponse
-	Key string `json:"key"` // 完整的API密钥，只在创建时返回
 }
 
 // APIKeyListResponse API密钥列表响应
@@ -55,6 +55,7 @@ func (r *APIKeyResponse) FromEntity(apiKey *entities.APIKey) *APIKeyResponse {
 	return &APIKeyResponse{
 		ID:          apiKey.ID,
 		UserID:      apiKey.UserID,
+		Key:         apiKey.Key,
 		KeyPrefix:   apiKey.KeyPrefix,
 		Name:        apiKey.Name,
 		Status:      apiKey.Status,

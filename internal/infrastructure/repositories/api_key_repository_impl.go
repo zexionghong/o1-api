@@ -25,23 +25,23 @@ func NewAPIKeyRepository(db *sql.DB) repositories.APIKeyRepository {
 // Create 创建API密钥
 func (r *apiKeyRepositoryImpl) Create(ctx context.Context, apiKey *entities.APIKey) error {
 	query := `
-		INSERT INTO api_keys (user_id, key_hash, key_prefix, name, status, permissions, expires_at, created_at, updated_at)
+		INSERT INTO api_keys (user_id, key, key_prefix, name, status, permissions, expires_at, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	now := time.Now()
 	apiKey.CreatedAt = now
 	apiKey.UpdatedAt = now
-	
+
 	// 序列化权限
 	permissionsJSON, err := apiKey.MarshalPermissions()
 	if err != nil {
 		return fmt.Errorf("failed to marshal permissions: %w", err)
 	}
-	
+
 	result, err := r.db.ExecContext(ctx, query,
 		apiKey.UserID,
-		apiKey.KeyHash,
+		apiKey.Key,
 		apiKey.KeyPrefix,
 		apiKey.Name,
 		apiKey.Status,
@@ -53,12 +53,12 @@ func (r *apiKeyRepositoryImpl) Create(ctx context.Context, apiKey *entities.APIK
 	if err != nil {
 		return fmt.Errorf("failed to create api key: %w", err)
 	}
-	
+
 	id, err := result.LastInsertId()
 	if err != nil {
 		return fmt.Errorf("failed to get last insert id: %w", err)
 	}
-	
+
 	apiKey.ID = id
 	return nil
 }
@@ -66,17 +66,17 @@ func (r *apiKeyRepositoryImpl) Create(ctx context.Context, apiKey *entities.APIK
 // GetByID 根据ID获取API密钥
 func (r *apiKeyRepositoryImpl) GetByID(ctx context.Context, id int64) (*entities.APIKey, error) {
 	query := `
-		SELECT id, user_id, key_hash, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
+		SELECT id, user_id, key, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
 		FROM api_keys WHERE id = ?
 	`
-	
+
 	apiKey := &entities.APIKey{}
 	var permissionsJSON sql.NullString
-	
+
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&apiKey.ID,
 		&apiKey.UserID,
-		&apiKey.KeyHash,
+		&apiKey.Key,
 		&apiKey.KeyPrefix,
 		&apiKey.Name,
 		&apiKey.Status,
@@ -86,38 +86,38 @@ func (r *apiKeyRepositoryImpl) GetByID(ctx context.Context, id int64) (*entities
 		&apiKey.CreatedAt,
 		&apiKey.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, entities.ErrAPIKeyNotFound
 		}
 		return nil, fmt.Errorf("failed to get api key by id: %w", err)
 	}
-	
+
 	// 反序列化权限
 	if permissionsJSON.Valid {
 		if err := apiKey.UnmarshalPermissions(permissionsJSON.String); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal permissions: %w", err)
 		}
 	}
-	
+
 	return apiKey, nil
 }
 
-// GetByKeyHash 根据密钥哈希获取API密钥
-func (r *apiKeyRepositoryImpl) GetByKeyHash(ctx context.Context, keyHash string) (*entities.APIKey, error) {
+// GetByKey 根据密钥获取API密钥
+func (r *apiKeyRepositoryImpl) GetByKey(ctx context.Context, key string) (*entities.APIKey, error) {
 	query := `
-		SELECT id, user_id, key_hash, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
-		FROM api_keys WHERE key_hash = ?
+		SELECT id, user_id, key, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
+		FROM api_keys WHERE key = ?
 	`
-	
+
 	apiKey := &entities.APIKey{}
 	var permissionsJSON sql.NullString
-	
-	err := r.db.QueryRowContext(ctx, query, keyHash).Scan(
+
+	err := r.db.QueryRowContext(ctx, query, key).Scan(
 		&apiKey.ID,
 		&apiKey.UserID,
-		&apiKey.KeyHash,
+		&apiKey.Key,
 		&apiKey.KeyPrefix,
 		&apiKey.Name,
 		&apiKey.Status,
@@ -127,48 +127,48 @@ func (r *apiKeyRepositoryImpl) GetByKeyHash(ctx context.Context, keyHash string)
 		&apiKey.CreatedAt,
 		&apiKey.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, entities.ErrAPIKeyNotFound
 		}
-		return nil, fmt.Errorf("failed to get api key by hash: %w", err)
+		return nil, fmt.Errorf("failed to get api key by key: %w", err)
 	}
-	
+
 	// 反序列化权限
 	if permissionsJSON.Valid {
 		if err := apiKey.UnmarshalPermissions(permissionsJSON.String); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal permissions: %w", err)
 		}
 	}
-	
+
 	return apiKey, nil
 }
 
 // GetByUserID 根据用户ID获取API密钥列表
 func (r *apiKeyRepositoryImpl) GetByUserID(ctx context.Context, userID int64) ([]*entities.APIKey, error) {
 	query := `
-		SELECT id, user_id, key_hash, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
-		FROM api_keys 
+		SELECT id, user_id, key, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
+		FROM api_keys
 		WHERE user_id = ?
 		ORDER BY created_at DESC
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get api keys by user id: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var apiKeys []*entities.APIKey
 	for rows.Next() {
 		apiKey := &entities.APIKey{}
 		var permissionsJSON sql.NullString
-		
+
 		err := rows.Scan(
 			&apiKey.ID,
 			&apiKey.UserID,
-			&apiKey.KeyHash,
+			&apiKey.Key,
 			&apiKey.KeyPrefix,
 			&apiKey.Name,
 			&apiKey.Status,
@@ -181,21 +181,21 @@ func (r *apiKeyRepositoryImpl) GetByUserID(ctx context.Context, userID int64) ([
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan api key: %w", err)
 		}
-		
+
 		// 反序列化权限
 		if permissionsJSON.Valid {
 			if err := apiKey.UnmarshalPermissions(permissionsJSON.String); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal permissions: %w", err)
 			}
 		}
-		
+
 		apiKeys = append(apiKeys, apiKey)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate api keys: %w", err)
 	}
-	
+
 	return apiKeys, nil
 }
 
@@ -206,15 +206,15 @@ func (r *apiKeyRepositoryImpl) Update(ctx context.Context, apiKey *entities.APIK
 		SET name = ?, status = ?, permissions = ?, expires_at = ?, last_used_at = ?, updated_at = ?
 		WHERE id = ?
 	`
-	
+
 	apiKey.UpdatedAt = time.Now()
-	
+
 	// 序列化权限
 	permissionsJSON, err := apiKey.MarshalPermissions()
 	if err != nil {
 		return fmt.Errorf("failed to marshal permissions: %w", err)
 	}
-	
+
 	result, err := r.db.ExecContext(ctx, query,
 		apiKey.Name,
 		apiKey.Status,
@@ -227,16 +227,16 @@ func (r *apiKeyRepositoryImpl) Update(ctx context.Context, apiKey *entities.APIK
 	if err != nil {
 		return fmt.Errorf("failed to update api key: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return entities.ErrAPIKeyNotFound
 	}
-	
+
 	return nil
 }
 
@@ -247,22 +247,22 @@ func (r *apiKeyRepositoryImpl) UpdateLastUsed(ctx context.Context, id int64) err
 		SET last_used_at = ?, updated_at = ?
 		WHERE id = ?
 	`
-	
+
 	now := time.Now()
 	result, err := r.db.ExecContext(ctx, query, now, now, id)
 	if err != nil {
 		return fmt.Errorf("failed to update last used: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return entities.ErrAPIKeyNotFound
 	}
-	
+
 	return nil
 }
 
@@ -273,69 +273,69 @@ func (r *apiKeyRepositoryImpl) UpdateStatus(ctx context.Context, id int64, statu
 		SET status = ?, updated_at = ?
 		WHERE id = ?
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query, status, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("failed to update status: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return entities.ErrAPIKeyNotFound
 	}
-	
+
 	return nil
 }
 
 // Delete 删除API密钥
 func (r *apiKeyRepositoryImpl) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM api_keys WHERE id = ?`
-	
+
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete api key: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return entities.ErrAPIKeyNotFound
 	}
-	
+
 	return nil
 }
 
 // List 获取API密钥列表
 func (r *apiKeyRepositoryImpl) List(ctx context.Context, offset, limit int) ([]*entities.APIKey, error) {
 	query := `
-		SELECT id, user_id, key_hash, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
-		FROM api_keys 
+		SELECT id, user_id, key, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
+		FROM api_keys
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list api keys: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var apiKeys []*entities.APIKey
 	for rows.Next() {
 		apiKey := &entities.APIKey{}
 		var permissionsJSON sql.NullString
-		
+
 		err := rows.Scan(
 			&apiKey.ID,
 			&apiKey.UserID,
-			&apiKey.KeyHash,
+			&apiKey.Key,
 			&apiKey.KeyPrefix,
 			&apiKey.Name,
 			&apiKey.Status,
@@ -348,61 +348,61 @@ func (r *apiKeyRepositoryImpl) List(ctx context.Context, offset, limit int) ([]*
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan api key: %w", err)
 		}
-		
+
 		// 反序列化权限
 		if permissionsJSON.Valid {
 			if err := apiKey.UnmarshalPermissions(permissionsJSON.String); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal permissions: %w", err)
 			}
 		}
-		
+
 		apiKeys = append(apiKeys, apiKey)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate api keys: %w", err)
 	}
-	
+
 	return apiKeys, nil
 }
 
 // Count 获取API密钥总数
 func (r *apiKeyRepositoryImpl) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM api_keys`
-	
+
 	var count int64
 	err := r.db.QueryRowContext(ctx, query).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count api keys: %w", err)
 	}
-	
+
 	return count, nil
 }
 
 // GetActiveKeys 获取活跃的API密钥列表
 func (r *apiKeyRepositoryImpl) GetActiveKeys(ctx context.Context, userID int64) ([]*entities.APIKey, error) {
 	query := `
-		SELECT id, user_id, key_hash, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
-		FROM api_keys 
+		SELECT id, user_id, key, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
+		FROM api_keys
 		WHERE user_id = ? AND status = ? AND (expires_at IS NULL OR expires_at > ?)
 		ORDER BY created_at DESC
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, userID, entities.APIKeyStatusActive, time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active keys: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var apiKeys []*entities.APIKey
 	for rows.Next() {
 		apiKey := &entities.APIKey{}
 		var permissionsJSON sql.NullString
-		
+
 		err := rows.Scan(
 			&apiKey.ID,
 			&apiKey.UserID,
-			&apiKey.KeyHash,
+			&apiKey.Key,
 			&apiKey.KeyPrefix,
 			&apiKey.Name,
 			&apiKey.Status,
@@ -415,49 +415,49 @@ func (r *apiKeyRepositoryImpl) GetActiveKeys(ctx context.Context, userID int64) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan api key: %w", err)
 		}
-		
+
 		// 反序列化权限
 		if permissionsJSON.Valid {
 			if err := apiKey.UnmarshalPermissions(permissionsJSON.String); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal permissions: %w", err)
 			}
 		}
-		
+
 		apiKeys = append(apiKeys, apiKey)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate api keys: %w", err)
 	}
-	
+
 	return apiKeys, nil
 }
 
 // GetExpiredKeys 获取过期的API密钥列表
 func (r *apiKeyRepositoryImpl) GetExpiredKeys(ctx context.Context, limit int) ([]*entities.APIKey, error) {
 	query := `
-		SELECT id, user_id, key_hash, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
-		FROM api_keys 
+		SELECT id, user_id, key, key_prefix, name, status, permissions, expires_at, last_used_at, created_at, updated_at
+		FROM api_keys
 		WHERE expires_at IS NOT NULL AND expires_at <= ? AND status = ?
 		ORDER BY expires_at ASC
 		LIMIT ?
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, time.Now(), entities.APIKeyStatusActive, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get expired keys: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var apiKeys []*entities.APIKey
 	for rows.Next() {
 		apiKey := &entities.APIKey{}
 		var permissionsJSON sql.NullString
-		
+
 		err := rows.Scan(
 			&apiKey.ID,
 			&apiKey.UserID,
-			&apiKey.KeyHash,
+			&apiKey.Key,
 			&apiKey.KeyPrefix,
 			&apiKey.Name,
 			&apiKey.Status,
@@ -470,20 +470,20 @@ func (r *apiKeyRepositoryImpl) GetExpiredKeys(ctx context.Context, limit int) ([
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan api key: %w", err)
 		}
-		
+
 		// 反序列化权限
 		if permissionsJSON.Valid {
 			if err := apiKey.UnmarshalPermissions(permissionsJSON.String); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal permissions: %w", err)
 			}
 		}
-		
+
 		apiKeys = append(apiKeys, apiKey)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate api keys: %w", err)
 	}
-	
+
 	return apiKeys, nil
 }

@@ -287,9 +287,20 @@ func (r *requestRouterImpl) RouteStreamRequest(ctx context.Context, request *Gat
 	// 暂时返回错误，表示流式功能尚未完全实现
 	// TODO: 实现完整的流式请求路由
 
+	// 使用 channel 来等待流式数据发送完成
+	done := make(chan struct{})
+
 	// 模拟流式响应
 	go func() {
-		// 注意：不在这里关闭 streamChan，因为它是由调用者创建和管理的
+		defer func() {
+			// 捕获panic，防止向已关闭的channel发送数据
+			if r := recover(); r != nil {
+				// 记录panic但不重新抛出
+				// 这通常发生在客户端断开连接后channel被关闭的情况
+			}
+			// 通知完成
+			close(done)
+		}()
 
 		// 发送一些模拟的流式数据块
 		chunks := []string{
@@ -306,25 +317,42 @@ func (r *requestRouterImpl) RouteStreamRequest(ctx context.Context, request *Gat
 		for i, content := range chunks {
 			select {
 			case <-ctx.Done():
+				// 上下文取消，停止发送
 				return
-			case streamChan <- &StreamChunk{
-				ID:      fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano()),
-				Object:  "chat.completion.chunk",
-				Created: time.Now().Unix(),
-				Model:   request.ModelSlug,
-				Content: content,
-				FinishReason: func() *string {
-					if i == len(chunks)-1 {
-						reason := "stop"
-						return &reason
-					}
-					return nil
-				}(),
-			}:
-				time.Sleep(100 * time.Millisecond) // 模拟延迟
+			default:
+				// 尝试发送数据，如果channel已关闭则会panic，被defer捕获
+				select {
+				case streamChan <- &StreamChunk{
+					ID:      fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano()),
+					Object:  "chat.completion.chunk",
+					Created: time.Now().Unix(),
+					Model:   request.ModelSlug,
+					Content: content,
+					FinishReason: func() *string {
+						if i == len(chunks)-1 {
+							reason := "stop"
+							return &reason
+						}
+						return nil
+					}(),
+				}:
+					time.Sleep(100 * time.Millisecond) // 模拟延迟
+				case <-ctx.Done():
+					// 在发送过程中上下文被取消
+					return
+				}
 			}
 		}
 	}()
+
+	// 等待流式数据发送完成或上下文取消
+	select {
+	case <-done:
+		// 流式数据发送完成
+	case <-ctx.Done():
+		// 上下文取消
+		return nil, ctx.Err()
+	}
 
 	// 构造基本响应
 	response := &RouteResponse{

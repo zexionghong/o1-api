@@ -47,12 +47,28 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 
 	// 启动流式处理
 	go func() {
-		defer close(streamChan)
-		defer close(errorChan)
+		defer func() {
+			// 安全关闭channels
+			select {
+			case <-streamChan:
+			default:
+				close(streamChan)
+			}
+
+			select {
+			case <-errorChan:
+			default:
+				close(errorChan)
+			}
+		}()
 
 		err := h.gatewayService.ProcessStreamRequest(c.Request.Context(), gatewayRequest, streamChan)
 		if err != nil {
-			errorChan <- err
+			select {
+			case errorChan <- err:
+			case <-c.Request.Context().Done():
+				// 如果上下文已取消，不发送错误
+			}
 		}
 	}()
 
