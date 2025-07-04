@@ -1,0 +1,359 @@
+package gateway
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"ai-api-gateway/internal/application/services"
+	"ai-api-gateway/internal/domain/entities"
+	"ai-api-gateway/internal/domain/values"
+	"ai-api-gateway/internal/infrastructure/clients"
+	"ai-api-gateway/internal/infrastructure/logger"
+)
+
+// GatewayService API网关服务接口
+type GatewayService interface {
+	// ProcessRequest 处理AI请求
+	ProcessRequest(ctx context.Context, request *GatewayRequest) (*GatewayResponse, error)
+
+	// HealthCheck 健康检查
+	HealthCheck(ctx context.Context) (*HealthCheckResult, error)
+
+	// GetStats 获取统计信息
+	GetStats(ctx context.Context) (*GatewayStats, error)
+}
+
+// GatewayRequest 网关请求
+type GatewayRequest struct {
+	UserID    int64              `json:"user_id"`
+	APIKeyID  int64              `json:"api_key_id"`
+	ModelSlug string             `json:"model_slug"`
+	Request   *clients.AIRequest `json:"request"`
+	RequestID string             `json:"request_id"`
+}
+
+// GatewayResponse 网关响应
+type GatewayResponse struct {
+	Response  *clients.AIResponse `json:"response"`
+	Usage     *UsageInfo          `json:"usage"`
+	Cost      *CostInfo           `json:"cost"`
+	Provider  string              `json:"provider"`
+	Model     string              `json:"model"`
+	Duration  time.Duration       `json:"duration"`
+	RequestID string              `json:"request_id"`
+}
+
+// UsageInfo 使用信息
+type UsageInfo struct {
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
+	TotalTokens  int `json:"total_tokens"`
+}
+
+// CostInfo 成本信息
+type CostInfo struct {
+	InputCost  float64 `json:"input_cost"`
+	OutputCost float64 `json:"output_cost"`
+	TotalCost  float64 `json:"total_cost"`
+	Currency   string  `json:"currency"`
+}
+
+// HealthCheckResult 健康检查结果
+type HealthCheckResult struct {
+	Status    string                    `json:"status"`
+	Timestamp time.Time                 `json:"timestamp"`
+	Providers map[string]ProviderHealth `json:"providers"`
+	Database  DatabaseHealth            `json:"database"`
+}
+
+// ProviderHealth 提供商健康状态
+type ProviderHealth struct {
+	Status       string        `json:"status"`
+	ResponseTime time.Duration `json:"response_time"`
+	LastCheck    time.Time     `json:"last_check"`
+	Error        string        `json:"error,omitempty"`
+}
+
+// DatabaseHealth 数据库健康状态
+type DatabaseHealth struct {
+	Status       string        `json:"status"`
+	ResponseTime time.Duration `json:"response_time"`
+	Error        string        `json:"error,omitempty"`
+}
+
+// GatewayStats 网关统计信息
+type GatewayStats struct {
+	TotalRequests      int64                    `json:"total_requests"`
+	SuccessfulRequests int64                    `json:"successful_requests"`
+	FailedRequests     int64                    `json:"failed_requests"`
+	SuccessRate        float64                  `json:"success_rate"`
+	AvgResponseTime    time.Duration            `json:"avg_response_time"`
+	ProvidersStats     map[int64]*ProviderStats `json:"providers_stats"`
+	Uptime             time.Duration            `json:"uptime"`
+}
+
+// gatewayServiceImpl 网关服务实现
+type gatewayServiceImpl struct {
+	router          RequestRouter
+	userService     services.UserService
+	apiKeyService   services.APIKeyService
+	quotaService    services.QuotaService
+	billingService  services.BillingService
+	usageLogService services.UsageLogService
+	logger          logger.Logger
+	startTime       time.Time
+	requestIDGen    *values.RequestIDGenerator
+}
+
+// NewGatewayService 创建网关服务
+func NewGatewayService(
+	router RequestRouter,
+	userService services.UserService,
+	apiKeyService services.APIKeyService,
+	quotaService services.QuotaService,
+	billingService services.BillingService,
+	usageLogService services.UsageLogService,
+	logger logger.Logger,
+) GatewayService {
+	return &gatewayServiceImpl{
+		router:          router,
+		userService:     userService,
+		apiKeyService:   apiKeyService,
+		quotaService:    quotaService,
+		billingService:  billingService,
+		usageLogService: usageLogService,
+		logger:          logger,
+		startTime:       time.Now(),
+		requestIDGen:    values.NewRequestIDGenerator(),
+	}
+}
+
+// ProcessRequest 处理AI请求
+func (g *gatewayServiceImpl) ProcessRequest(ctx context.Context, request *GatewayRequest) (*GatewayResponse, error) {
+	start := time.Now()
+
+	// 生成请求ID（如果没有提供）
+	if request.RequestID == "" {
+		var err error
+		request.RequestID, err = g.requestIDGen.Generate()
+		if err != nil {
+			g.logger.WithField("error", err.Error()).Error("Failed to generate request ID")
+			request.RequestID = fmt.Sprintf("req_%d", time.Now().UnixNano())
+		}
+	}
+
+	g.logger.WithFields(map[string]interface{}{
+		"request_id": request.RequestID,
+		"user_id":    request.UserID,
+		"api_key_id": request.APIKeyID,
+		"model_slug": request.ModelSlug,
+	}).Info("Processing AI request")
+
+	// 路由请求
+	routeRequest := &RouteRequest{
+		UserID:    request.UserID,
+		APIKeyID:  request.APIKeyID,
+		ModelSlug: request.ModelSlug,
+		Request:   request.Request,
+		RequestID: request.RequestID,
+	}
+	g.logger.WithFields(map[string]interface{}{
+		"request_id": routeRequest.RequestID,
+		"user_id":    routeRequest.UserID,
+		"api_key_id": routeRequest.Request,
+		"model_slug": routeRequest.ModelSlug,
+	}).Info("Routing AI request")
+	routeResponse, err := g.router.RouteRequest(ctx, routeRequest)
+	if err != nil {
+		// 记录失败的使用日志
+		g.recordUsageLog(ctx, request, nil, nil, nil, time.Since(start), err)
+		return nil, fmt.Errorf("failed to route request: %w", err)
+	}
+
+	// 计算使用量和成本
+	usage := &UsageInfo{
+		InputTokens:  routeResponse.Response.Usage.PromptTokens,
+		OutputTokens: routeResponse.Response.Usage.CompletionTokens,
+		TotalTokens:  routeResponse.Response.Usage.TotalTokens,
+	}
+
+	// 计算成本
+	cost, err := g.calculateCost(ctx, routeResponse.Model.ID, usage.InputTokens, usage.OutputTokens)
+	if err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"request_id": request.RequestID,
+			"model_id":   routeResponse.Model.ID,
+			"error":      err.Error(),
+		}).Warn("Failed to calculate cost")
+		cost = &CostInfo{Currency: "USD"} // 默认值
+	}
+
+	// 记录使用日志
+	g.recordUsageLog(ctx, request, routeResponse.Provider, routeResponse.Model, usage, routeResponse.Duration, nil)
+
+	// 消费配额
+	g.consumeQuotas(ctx, request.UserID, usage, cost)
+
+	// 处理计费
+	g.processBilling(ctx, request.UserID, cost.TotalCost)
+
+	response := &GatewayResponse{
+		Response:  routeResponse.Response,
+		Usage:     usage,
+		Cost:      cost,
+		Provider:  routeResponse.Provider.Name,
+		Model:     routeResponse.Model.Name,
+		Duration:  routeResponse.Duration,
+		RequestID: request.RequestID,
+	}
+
+	g.logger.WithFields(map[string]interface{}{
+		"request_id":   request.RequestID,
+		"provider":     response.Provider,
+		"model":        response.Model,
+		"total_tokens": usage.TotalTokens,
+		"total_cost":   cost.TotalCost,
+		"duration":     response.Duration,
+	}).Info("Request processed successfully")
+
+	return response, nil
+}
+
+// calculateCost 计算成本
+func (g *gatewayServiceImpl) calculateCost(ctx context.Context, modelID int64, inputTokens, outputTokens int) (*CostInfo, error) {
+	totalCost, err := g.billingService.CalculateCost(ctx, modelID, inputTokens, outputTokens)
+	if err != nil {
+		return nil, err
+	}
+
+	// 简化处理，实际应该根据定价类型分别计算
+	inputCost := totalCost * 0.6  // 假设输入占60%
+	outputCost := totalCost * 0.4 // 假设输出占40%
+
+	return &CostInfo{
+		InputCost:  inputCost,
+		OutputCost: outputCost,
+		TotalCost:  totalCost,
+		Currency:   "USD",
+	}, nil
+}
+
+// recordUsageLog 记录使用日志
+func (g *gatewayServiceImpl) recordUsageLog(ctx context.Context, request *GatewayRequest, provider *entities.Provider, model *entities.Model, usage *UsageInfo, duration time.Duration, requestError error) {
+	usageLog := &entities.UsageLog{
+		UserID:     request.UserID,
+		APIKeyID:   request.APIKeyID,
+		RequestID:  request.RequestID,
+		Method:     "POST",
+		Endpoint:   "/v1/chat/completions",
+		DurationMs: int(duration.Milliseconds()),
+		CreatedAt:  time.Now(),
+	}
+
+	if provider != nil {
+		usageLog.ProviderID = provider.ID
+	}
+
+	if model != nil {
+		usageLog.ModelID = model.ID
+	}
+
+	if usage != nil {
+		usageLog.InputTokens = usage.InputTokens
+		usageLog.OutputTokens = usage.OutputTokens
+		usageLog.TotalTokens = usage.TotalTokens
+	}
+
+	if requestError != nil {
+		usageLog.StatusCode = 500
+		errorMsg := requestError.Error()
+		usageLog.ErrorMessage = &errorMsg
+	} else {
+		usageLog.StatusCode = 200
+	}
+
+	if err := g.usageLogService.CreateUsageLog(ctx, usageLog); err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"request_id": request.RequestID,
+			"error":      err.Error(),
+		}).Error("Failed to create usage log")
+	}
+}
+
+// consumeQuotas 消费配额
+func (g *gatewayServiceImpl) consumeQuotas(ctx context.Context, userID int64, usage *UsageInfo, cost *CostInfo) {
+	// 消费请求配额
+	if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeRequests, 1); err != nil {
+		g.logger.WithFields(map[string]interface{}{
+			"user_id": userID,
+			"error":   err.Error(),
+		}).Warn("Failed to consume request quota")
+	}
+
+	// 消费token配额
+	if usage.TotalTokens > 0 {
+		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeTokens, float64(usage.TotalTokens)); err != nil {
+			g.logger.WithFields(map[string]interface{}{
+				"user_id":      userID,
+				"total_tokens": usage.TotalTokens,
+				"error":        err.Error(),
+			}).Warn("Failed to consume token quota")
+		}
+	}
+
+	// 消费成本配额
+	if cost.TotalCost > 0 {
+		if err := g.quotaService.ConsumeQuota(ctx, userID, entities.QuotaTypeCost, cost.TotalCost); err != nil {
+			g.logger.WithFields(map[string]interface{}{
+				"user_id":    userID,
+				"total_cost": cost.TotalCost,
+				"error":      err.Error(),
+			}).Warn("Failed to consume cost quota")
+		}
+	}
+}
+
+// processBilling 处理计费
+func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, cost float64) {
+	if cost <= 0 {
+		return
+	}
+
+	// 简化处理：直接扣减用户余额
+	// 实际应该创建计费记录并异步处理
+	// TODO: 实现完整的计费流程
+}
+
+// HealthCheck 健康检查
+func (g *gatewayServiceImpl) HealthCheck(ctx context.Context) (*HealthCheckResult, error) {
+	result := &HealthCheckResult{
+		Status:    "healthy",
+		Timestamp: time.Now(),
+		Providers: make(map[string]ProviderHealth),
+		Database: DatabaseHealth{
+			Status: "healthy",
+		},
+	}
+
+	// TODO: 实现提供商健康检查
+	// TODO: 实现数据库健康检查
+
+	return result, nil
+}
+
+// GetStats 获取统计信息
+func (g *gatewayServiceImpl) GetStats(ctx context.Context) (*GatewayStats, error) {
+	// TODO: 实现统计信息收集
+	stats := &GatewayStats{
+		TotalRequests:      0,
+		SuccessfulRequests: 0,
+		FailedRequests:     0,
+		SuccessRate:        0.0,
+		AvgResponseTime:    0,
+		ProvidersStats:     make(map[int64]*ProviderStats),
+		Uptime:             time.Since(g.startTime),
+	}
+
+	return stats, nil
+}

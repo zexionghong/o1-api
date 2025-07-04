@@ -1,0 +1,127 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"ai-api-gateway/internal/application/services"
+	"ai-api-gateway/internal/infrastructure/clients"
+	"ai-api-gateway/internal/infrastructure/config"
+	"ai-api-gateway/internal/infrastructure/database"
+	"ai-api-gateway/internal/infrastructure/gateway"
+	"ai-api-gateway/internal/infrastructure/logger"
+	"ai-api-gateway/internal/infrastructure/repositories"
+	"ai-api-gateway/internal/presentation/routes"
+)
+
+func main() {
+	// 解析命令行参数
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "Path to configuration file")
+	flag.Parse()
+
+	// 加载配置
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		fmt.Printf("Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 初始化日志记录器
+	logger.InitGlobalLogger(&cfg.Logging)
+	log := logger.GetLogger()
+
+	log.Info("Starting AI API Gateway")
+	log.WithField("config", configPath).Info("Configuration loaded")
+
+	// 初始化数据库连接
+	dbConn, err := database.NewConnection(&cfg.Database)
+	if err != nil {
+		log.WithField("error", err.Error()).Fatal("Failed to connect to database")
+	}
+	defer dbConn.Close()
+
+	log.Info("Database connection established")
+
+	// 创建仓储工厂
+	repoFactory := repositories.NewRepositoryFactory(dbConn.DB())
+
+	// 创建服务工厂
+	serviceFactory := services.NewServiceFactory(repoFactory)
+
+	// 创建HTTP客户端
+	httpClient := clients.NewHTTPClient(30 * time.Second)
+
+	// 创建AI提供商客户端
+	aiClient := clients.NewAIProviderClient(httpClient)
+
+	// 创建负载均衡器
+	loadBalancer := gateway.NewLoadBalancer(
+		gateway.LoadBalanceStrategy(cfg.LoadBalance.Strategy),
+		log,
+	)
+
+	// 创建请求路由器
+	requestRouter := gateway.NewRequestRouter(
+		serviceFactory.ProviderService(),
+		serviceFactory.ModelService(),
+		loadBalancer,
+		aiClient,
+		log,
+	)
+
+	// 创建网关服务
+	gatewayService := gateway.NewGatewayService(
+		requestRouter,
+		serviceFactory.UserService(),
+		serviceFactory.APIKeyService(),
+		serviceFactory.QuotaService(),
+		serviceFactory.BillingService(),
+		serviceFactory.UsageLogService(),
+		log,
+	)
+
+	// 创建路由器
+	router := routes.NewRouter(cfg, log, serviceFactory, gatewayService)
+	router.SetupRoutes()
+
+	// 创建HTTP服务器
+	server := &http.Server{
+		Addr:         cfg.Server.GetAddress(),
+		Handler:      router.GetEngine(),
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+		IdleTimeout:  cfg.Server.IdleTimeout,
+	}
+
+	// 启动服务器
+	go func() {
+		log.WithField("address", server.Addr).Info("Starting HTTP server")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.WithField("error", err.Error()).Fatal("Failed to start HTTP server")
+		}
+	}()
+
+	// 等待中断信号
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info("Shutting down server...")
+
+	// 优雅关闭服务器
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.WithField("error", err.Error()).Fatal("Server forced to shutdown")
+	} else {
+		log.Info("Server shutdown complete")
+	}
+}
