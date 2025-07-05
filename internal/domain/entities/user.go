@@ -15,14 +15,15 @@ const (
 
 // User 用户实体
 type User struct {
-	ID        int64      `json:"id" db:"id"`
-	Username  string     `json:"username" db:"username"`
-	Email     string     `json:"email" db:"email"`
-	FullName  *string    `json:"full_name,omitempty" db:"full_name"`
-	Status    UserStatus `json:"status" db:"status"`
-	Balance   float64    `json:"balance" db:"balance"`
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	ID           int64      `json:"id" db:"id"`
+	Username     string     `json:"username" db:"username"`
+	Email        string     `json:"email" db:"email"`
+	PasswordHash *string    `json:"-" db:"password_hash"` // 密码哈希，不在JSON中返回
+	FullName     *string    `json:"full_name,omitempty" db:"full_name"`
+	Status       UserStatus `json:"status" db:"status"`
+	Balance      float64    `json:"balance" db:"balance"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // IsActive 检查用户是否处于活跃状态

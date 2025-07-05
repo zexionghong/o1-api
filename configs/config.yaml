@@ -162,6 +162,19 @@ async_quota:
     enable_compression: false    # 启用事件压缩（暂未实现）
     max_memory_usage: "100MB"    # 最大内存使用（暂未实现）
 
+# JWT认证配置
+jwt:
+  # JWT密钥（生产环境请使用更复杂的密钥）
+  secret: "your-super-secret-jwt-key-change-this-in-production"
+  # Token过期时间
+  access_token_ttl: "24h"
+  # 刷新Token过期时间
+  refresh_token_ttl: "168h" # 7天
+  # 签发者
+  issuer: "ai-api-gateway"
+  # 受众
+  audience: "ai-api-gateway-users"
+
 # 分布式锁配置
 distributed_lock:
   # 是否启用分布式锁

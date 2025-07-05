@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"ai-api-gateway/internal/infrastructure/async"
+	"ai-api-gateway/internal/infrastructure/config"
 	"ai-api-gateway/internal/infrastructure/logger"
 	redisInfra "ai-api-gateway/internal/infrastructure/redis"
 	"ai-api-gateway/internal/infrastructure/repositories"
@@ -13,14 +14,16 @@ import (
 type ServiceFactory struct {
 	repoFactory  *repositories.RepositoryFactory
 	redisFactory *redisInfra.RedisFactory
+	config       *config.Config
 	logger       logger.Logger
 }
 
 // NewServiceFactory 创建服务工厂
-func NewServiceFactory(repoFactory *repositories.RepositoryFactory, redisFactory *redisInfra.RedisFactory, log logger.Logger) *ServiceFactory {
+func NewServiceFactory(repoFactory *repositories.RepositoryFactory, redisFactory *redisInfra.RedisFactory, cfg *config.Config, log logger.Logger) *ServiceFactory {
 	return &ServiceFactory{
 		repoFactory:  repoFactory,
 		redisFactory: redisFactory,
+		config:       cfg,
 		logger:       log,
 	}
 }
@@ -117,6 +120,19 @@ func (f *ServiceFactory) UsageLogService() UsageLogService {
 		f.repoFactory.APIKeyRepository(),
 		f.repoFactory.ProviderRepository(),
 		f.repoFactory.ModelRepository(),
+	)
+}
+
+// JWTService 获取JWT服务
+func (f *ServiceFactory) JWTService() JWTService {
+	return NewJWTService(&f.config.JWT)
+}
+
+// AuthService 获取认证服务
+func (f *ServiceFactory) AuthService() AuthService {
+	return NewAuthService(
+		f.repoFactory.UserRepository(),
+		f.JWTService(),
 	)
 }
 

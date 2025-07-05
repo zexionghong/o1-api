@@ -54,7 +54,12 @@ func NewRouter(
 // SetupRoutes 设置路由
 func (r *Router) SetupRoutes() {
 	// 创建中间件
-	authMiddleware := middleware.NewAuthMiddleware(r.serviceFactory.APIKeyService(), r.logger)
+	authMiddleware := middleware.NewAuthMiddleware(
+		r.serviceFactory.APIKeyService(),
+		r.serviceFactory.JWTService(),
+		r.serviceFactory.UserService(),
+		r.logger,
+	)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(&r.config.RateLimit, r.logger)
 	quotaMiddleware := middleware.NewQuotaMiddleware(r.serviceFactory.QuotaService(), r.logger)
 
@@ -71,6 +76,7 @@ func (r *Router) SetupRoutes() {
 	userHandler := handlers.NewUserHandler(r.serviceFactory.UserService(), r.logger)
 	apiKeyHandler := handlers.NewAPIKeyHandler(r.serviceFactory.APIKeyService(), r.logger)
 	healthHandler := handlers.NewHealthHandler(r.gatewayService, r.logger)
+	authHandler := handlers.NewAuthHandler(r.serviceFactory.AuthService(), r.logger)
 
 	// 健康检查路由（无需认证）
 	health := r.engine.Group("/health")
@@ -80,6 +86,22 @@ func (r *Router) SetupRoutes() {
 		health.GET("/live", healthHandler.LivenessCheck)
 		health.GET("/stats", healthHandler.GetStats)
 		health.GET("/version", healthHandler.GetVersion)
+	}
+
+	// 认证路由（无需认证）
+	auth := r.engine.Group("/auth")
+	{
+		auth.POST("/login", authHandler.Login)
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/refresh", authHandler.RefreshToken)
+
+		// 需要认证的认证路由
+		authProtected := auth.Group("/")
+		authProtected.Use(authMiddleware.Authenticate())
+		{
+			authProtected.GET("/profile", authHandler.GetProfile)
+			authProtected.POST("/change-password", authHandler.ChangePassword)
+		}
 	}
 
 	// 监控指标路由（无需认证）

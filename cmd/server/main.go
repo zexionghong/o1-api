@@ -69,7 +69,7 @@ func main() {
 	}
 
 	// 创建服务工厂
-	serviceFactory := services.NewServiceFactory(repoFactory, redisFactory, log)
+	serviceFactory := services.NewServiceFactory(repoFactory, redisFactory, cfg, log)
 
 	// 创建HTTP客户端
 	httpClient := clients.NewHTTPClient(30 * time.Second)
