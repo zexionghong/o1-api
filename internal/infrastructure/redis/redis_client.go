@@ -111,6 +111,11 @@ func (r *RedisClient) TTL(ctx context.Context, key string) (time.Duration, error
 	return r.client.TTL(ctx, key).Result()
 }
 
+// Keys 根据模式获取键列表
+func (r *RedisClient) Keys(ctx context.Context, pattern string) ([]string, error) {
+	return r.client.Keys(ctx, pattern).Result()
+}
+
 // Incr 递增
 func (r *RedisClient) Incr(ctx context.Context, key string) (int64, error) {
 	return r.client.Incr(ctx, key).Result()

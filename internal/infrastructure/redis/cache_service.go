@@ -298,6 +298,264 @@ func (c *CacheService) DeleteUserQuotas(ctx context.Context, userID int64) error
 	return c.Delete(ctx, key)
 }
 
+// 扩展的缓存方法
+
+// 用户查询缓存方法
+
+// SetUserByUsername 缓存按用户名查询的用户信息
+func (c *CacheService) SetUserByUsername(ctx context.Context, username string, user *entities.User) error {
+	key := GetUserByUsernameCacheKey(username)
+	ttl := viper.GetDuration("cache.query.user_lookup_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.user_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, user, ttl)
+}
+
+// GetUserByUsername 获取按用户名查询的用户缓存
+func (c *CacheService) GetUserByUsername(ctx context.Context, username string) (*entities.User, error) {
+	key := GetUserByUsernameCacheKey(username)
+	var user entities.User
+	if err := c.Get(ctx, key, &user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// SetUserByEmail 缓存按邮箱查询的用户信息
+func (c *CacheService) SetUserByEmail(ctx context.Context, email string, user *entities.User) error {
+	key := GetUserByEmailCacheKey(email)
+	ttl := viper.GetDuration("cache.query.user_lookup_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.user_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, user, ttl)
+}
+
+// GetUserByEmail 获取按邮箱查询的用户缓存
+func (c *CacheService) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
+	key := GetUserByEmailCacheKey(email)
+	var user entities.User
+	if err := c.Get(ctx, key, &user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// 模型列表缓存方法
+
+// SetActiveModels 缓存活跃模型列表
+func (c *CacheService) SetActiveModels(ctx context.Context, models []*entities.Model) error {
+	key := GetActiveModelsCacheKey()
+	ttl := viper.GetDuration("cache.query.model_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.model_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, models, ttl)
+}
+
+// GetActiveModels 获取活跃模型列表缓存
+func (c *CacheService) GetActiveModels(ctx context.Context) ([]*entities.Model, error) {
+	key := GetActiveModelsCacheKey()
+	var models []*entities.Model
+	if err := c.Get(ctx, key, &models); err != nil {
+		return nil, err
+	}
+	return models, nil
+}
+
+// SetModelsByType 缓存按类型查询的模型列表
+func (c *CacheService) SetModelsByType(ctx context.Context, modelType string, models []*entities.Model) error {
+	key := GetModelsByTypeCacheKey(modelType)
+	ttl := viper.GetDuration("cache.query.model_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.model_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, models, ttl)
+}
+
+// GetModelsByType 获取按类型查询的模型列表缓存
+func (c *CacheService) GetModelsByType(ctx context.Context, modelType string) ([]*entities.Model, error) {
+	key := GetModelsByTypeCacheKey(modelType)
+	var models []*entities.Model
+	if err := c.Get(ctx, key, &models); err != nil {
+		return nil, err
+	}
+	return models, nil
+}
+
+// SetAvailableModels 缓存可用模型列表
+func (c *CacheService) SetAvailableModels(ctx context.Context, models []*entities.Model) error {
+	key := GetAvailableModelsCacheKey()
+	ttl := viper.GetDuration("cache.query.model_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.model_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, models, ttl)
+}
+
+// GetAvailableModels 获取可用模型列表缓存
+func (c *CacheService) GetAvailableModels(ctx context.Context) ([]*entities.Model, error) {
+	key := GetAvailableModelsCacheKey()
+	var models []*entities.Model
+	if err := c.Get(ctx, key, &models); err != nil {
+		return nil, err
+	}
+	return models, nil
+}
+
+// 提供商列表缓存方法
+
+// SetAvailableProviders 缓存可用提供商列表
+func (c *CacheService) SetAvailableProviders(ctx context.Context, providers []*entities.Provider) error {
+	key := GetAvailableProvidersCacheKey()
+	ttl := viper.GetDuration("cache.query.provider_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.provider_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, providers, ttl)
+}
+
+// GetAvailableProviders 获取可用提供商列表缓存
+func (c *CacheService) GetAvailableProviders(ctx context.Context) ([]*entities.Provider, error) {
+	key := GetAvailableProvidersCacheKey()
+	var providers []*entities.Provider
+	if err := c.Get(ctx, key, &providers); err != nil {
+		return nil, err
+	}
+	return providers, nil
+}
+
+// SetActiveProviders 缓存活跃提供商列表
+func (c *CacheService) SetActiveProviders(ctx context.Context, providers []*entities.Provider) error {
+	key := GetActiveProvidersCacheKey()
+	ttl := viper.GetDuration("cache.query.provider_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.provider_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, providers, ttl)
+}
+
+// GetActiveProviders 获取活跃提供商列表缓存
+func (c *CacheService) GetActiveProviders(ctx context.Context) ([]*entities.Provider, error) {
+	key := GetActiveProvidersCacheKey()
+	var providers []*entities.Provider
+	if err := c.Get(ctx, key, &providers); err != nil {
+		return nil, err
+	}
+	return providers, nil
+}
+
+// SetProvidersNeedingHealthCheck 缓存需要健康检查的提供商列表
+func (c *CacheService) SetProvidersNeedingHealthCheck(ctx context.Context, providers []*entities.Provider) error {
+	key := GetProvidersNeedingHealthCheckCacheKey()
+	ttl := viper.GetDuration("cache.query.provider_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.provider_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, providers, ttl)
+}
+
+// GetProvidersNeedingHealthCheck 获取需要健康检查的提供商列表缓存
+func (c *CacheService) GetProvidersNeedingHealthCheck(ctx context.Context) ([]*entities.Provider, error) {
+	key := GetProvidersNeedingHealthCheckCacheKey()
+	var providers []*entities.Provider
+	if err := c.Get(ctx, key, &providers); err != nil {
+		return nil, err
+	}
+	return providers, nil
+}
+
+// API密钥列表缓存方法
+
+// SetUserAPIKeys 缓存用户API密钥列表
+func (c *CacheService) SetUserAPIKeys(ctx context.Context, userID int64, apiKeys []*entities.APIKey) error {
+	key := GetUserAPIKeysCacheKey(userID)
+	ttl := viper.GetDuration("cache.query.api_key_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.api_key_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, apiKeys, ttl)
+}
+
+// GetUserAPIKeys 获取用户API密钥列表缓存
+func (c *CacheService) GetUserAPIKeys(ctx context.Context, userID int64) ([]*entities.APIKey, error) {
+	key := GetUserAPIKeysCacheKey(userID)
+	var apiKeys []*entities.APIKey
+	if err := c.Get(ctx, key, &apiKeys); err != nil {
+		return nil, err
+	}
+	return apiKeys, nil
+}
+
+// SetActiveUserAPIKeys 缓存用户活跃API密钥列表
+func (c *CacheService) SetActiveUserAPIKeys(ctx context.Context, userID int64, apiKeys []*entities.APIKey) error {
+	key := GetActiveUserAPIKeysCacheKey(userID)
+	ttl := viper.GetDuration("cache.query.api_key_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.api_key_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, apiKeys, ttl)
+}
+
+// GetActiveUserAPIKeys 获取用户活跃API密钥列表缓存
+func (c *CacheService) GetActiveUserAPIKeys(ctx context.Context, userID int64) ([]*entities.APIKey, error) {
+	key := GetActiveUserAPIKeysCacheKey(userID)
+	var apiKeys []*entities.APIKey
+	if err := c.Get(ctx, key, &apiKeys); err != nil {
+		return nil, err
+	}
+	return apiKeys, nil
+}
+
+// 配额使用情况缓存方法
+
+// SetQuotaUsage 缓存配额使用情况
+func (c *CacheService) SetQuotaUsage(ctx context.Context, userID int64, quotaType, period string, usage *entities.QuotaUsage) error {
+	key := GetQuotaUsageCacheKey(userID, quotaType, period)
+	ttl := viper.GetDuration("cache.query.quota_usage_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.quota_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, usage, ttl)
+}
+
+// GetQuotaUsage 获取配额使用情况缓存
+func (c *CacheService) GetQuotaUsage(ctx context.Context, userID int64, quotaType, period string) (*entities.QuotaUsage, error) {
+	key := GetQuotaUsageCacheKey(userID, quotaType, period)
+	var usage entities.QuotaUsage
+	if err := c.Get(ctx, key, &usage); err != nil {
+		return nil, err
+	}
+	return &usage, nil
+}
+
+// DeleteQuotaUsage 删除配额使用情况缓存
+func (c *CacheService) DeleteQuotaUsage(ctx context.Context, userID int64, quotaType, period string) error {
+	key := GetQuotaUsageCacheKey(userID, quotaType, period)
+	return c.Delete(ctx, key)
+}
+
+// SetActiveQuotas 缓存活跃配额列表
+func (c *CacheService) SetActiveQuotas(ctx context.Context, userID int64, quotas []*entities.Quota) error {
+	key := GetActiveQuotasCacheKey(userID)
+	ttl := viper.GetDuration("cache.query.user_quota_list_ttl")
+	if ttl == 0 {
+		ttl = viper.GetDuration("cache.quota_ttl") // 向后兼容
+	}
+	return c.Set(ctx, key, quotas, ttl)
+}
+
+// GetActiveQuotas 获取活跃配额列表缓存
+func (c *CacheService) GetActiveQuotas(ctx context.Context, userID int64) ([]*entities.Quota, error) {
+	key := GetActiveQuotasCacheKey(userID)
+	var quotas []*entities.Quota
+	if err := c.Get(ctx, key, &quotas); err != nil {
+		return nil, err
+	}
+	return quotas, nil
+}
+
 // 缓存键生成函数
 
 // GetUserCacheKey 生成用户缓存键
@@ -333,4 +591,93 @@ func GetUserQuotasCacheKey(userID int64) string {
 // GetQuotaUsageCacheKey 生成配额使用缓存键
 func GetQuotaUsageCacheKey(userID int64, quotaType, period string) string {
 	return fmt.Sprintf("quota_usage:%d:%s:%s", userID, quotaType, period)
+}
+
+// 扩展的缓存键生成函数
+
+// GetUserByUsernameCacheKey 生成按用户名查询用户的缓存键
+func GetUserByUsernameCacheKey(username string) string {
+	return fmt.Sprintf("user:username:%s", username)
+}
+
+// GetUserByEmailCacheKey 生成按邮箱查询用户的缓存键
+func GetUserByEmailCacheKey(email string) string {
+	return fmt.Sprintf("user:email:%s", email)
+}
+
+// GetActiveModelsCacheKey 生成活跃模型列表缓存键
+func GetActiveModelsCacheKey() string {
+	return "models:active"
+}
+
+// GetModelsByTypeCacheKey 生成按类型查询模型的缓存键
+func GetModelsByTypeCacheKey(modelType string) string {
+	return fmt.Sprintf("models:type:%s", modelType)
+}
+
+// GetAvailableModelsCacheKey 生成可用模型列表缓存键
+func GetAvailableModelsCacheKey() string {
+	return "models:available"
+}
+
+// GetAvailableProvidersCacheKey 生成可用提供商列表缓存键
+func GetAvailableProvidersCacheKey() string {
+	return "providers:available"
+}
+
+// GetActiveProvidersCacheKey 生成活跃提供商列表缓存键
+func GetActiveProvidersCacheKey() string {
+	return "providers:active"
+}
+
+// GetProvidersNeedingHealthCheckCacheKey 生成需要健康检查的提供商列表缓存键
+func GetProvidersNeedingHealthCheckCacheKey() string {
+	return "providers:health_check_needed"
+}
+
+// GetUserAPIKeysCacheKey 生成用户API密钥列表缓存键
+func GetUserAPIKeysCacheKey(userID int64) string {
+	return fmt.Sprintf("user:%d:apikeys", userID)
+}
+
+// GetActiveUserAPIKeysCacheKey 生成用户活跃API密钥列表缓存键
+func GetActiveUserAPIKeysCacheKey(userID int64) string {
+	return fmt.Sprintf("user:%d:apikeys:active", userID)
+}
+
+// GetQuotaByUserAndTypeCacheKey 生成按用户和类型查询配额的缓存键
+func GetQuotaByUserAndTypeCacheKey(userID int64, quotaType, period string) string {
+	return fmt.Sprintf("quota:user:%d:type:%s:period:%s", userID, quotaType, period)
+}
+
+// GetActiveQuotasCacheKey 生成活跃配额列表缓存键
+func GetActiveQuotasCacheKey(userID int64) string {
+	return fmt.Sprintf("user:%d:quotas:active", userID)
+}
+
+// GetUsageLogsByUserCacheKey 生成用户使用日志列表缓存键
+func GetUsageLogsByUserCacheKey(userID int64, offset, limit int) string {
+	return fmt.Sprintf("usage_logs:user:%d:page:%d:%d", userID, offset, limit)
+}
+
+// GetQuotaUsageByUserCacheKey 生成用户配额使用列表缓存键
+func GetQuotaUsageByUserCacheKey(userID int64, offset, limit int) string {
+	return fmt.Sprintf("quota_usage:user:%d:page:%d:%d", userID, offset, limit)
+}
+
+// 统计缓存键
+
+// GetUserCountCacheKey 生成用户总数缓存键
+func GetUserCountCacheKey() string {
+	return "stats:users:count"
+}
+
+// GetQuotaCountCacheKey 生成配额总数缓存键
+func GetQuotaCountCacheKey() string {
+	return "stats:quotas:count"
+}
+
+// GetActiveUsersCacheKey 生成活跃用户分页列表缓存键
+func GetActiveUsersCacheKey(offset, limit int) string {
+	return fmt.Sprintf("users:active:page:%d:%d", offset, limit)
 }

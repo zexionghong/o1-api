@@ -94,15 +94,6 @@ func (s *modelServiceImpl) GetModelBySlug(ctx context.Context, providerID int64,
 	return s.modelRepo.GetBySlug(ctx, slug)
 }
 
-// QuotaService 配额服务接口
-type QuotaService interface {
-	// CheckQuota 检查配额是否足够
-	CheckQuota(ctx context.Context, userID int64, quotaType entities.QuotaType, value float64) (bool, error)
-
-	// ConsumeQuota 消费配额
-	ConsumeQuota(ctx context.Context, userID int64, quotaType entities.QuotaType, value float64) error
-}
-
 // 配额服务实现已移至 quota_service_impl.go
 
 // BillingService 计费服务接口

@@ -94,18 +94,73 @@ redis:
 cache:
   # 是否启用缓存
   enabled: true
-  # 默认过期时间
+
+  # 基础缓存TTL配置
   default_ttl: "5m"
-  # 用户信息缓存时间
+
+  # 实体缓存TTL
+  entity:
+    user_ttl: "10m"              # 用户信息缓存时间
+    api_key_ttl: "15m"           # API密钥缓存时间
+    model_ttl: "30m"             # 模型信息缓存时间
+    provider_ttl: "30m"          # 提供商信息缓存时间
+    quota_ttl: "1m"              # 配额信息缓存时间
+
+  # 查询缓存TTL
+  query:
+    user_lookup_ttl: "5m"        # 用户查询（按用户名/邮箱）缓存时间
+    model_list_ttl: "30m"        # 模型列表缓存时间
+    provider_list_ttl: "30m"     # 提供商列表缓存时间
+    quota_usage_ttl: "2m"        # 配额使用情况缓存时间
+    user_quota_list_ttl: "5m"    # 用户配额列表缓存时间
+    api_key_list_ttl: "10m"      # API密钥列表缓存时间
+    usage_log_ttl: "10m"         # 使用日志查询缓存时间
+
+  # 统计缓存TTL
+  stats:
+    count_ttl: "10m"             # 计数统计缓存时间
+    pagination_ttl: "5m"         # 分页列表缓存时间
+
+  # 缓存功能开关
+  features:
+    entity_cache: true           # 实体缓存
+    list_cache: true             # 列表缓存
+    query_cache: true            # 复合查询缓存
+    stats_cache: true            # 统计缓存
+    auto_invalidation: true      # 自动缓存失效
+
+  # 缓存性能配置
+  performance:
+    batch_invalidation: true     # 批量失效
+    preload_on_startup: true     # 启动时预加载
+    max_key_length: 250          # 最大键长度
+
+  # 向后兼容配置（保持原有配置键）
   user_ttl: "10m"
-  # API密钥缓存时间
   api_key_ttl: "15m"
-  # 模型信息缓存时间
   model_ttl: "30m"
-  # 提供商信息缓存时间
   provider_ttl: "30m"
-  # 配额信息缓存时间
   quota_ttl: "1m"
+
+# 异步配额消费者配置
+async_quota:
+  # 是否启用异步配额处理
+  enabled: true
+
+  # 消费者配置
+  consumer:
+    worker_count: 3              # 工作协程数量
+    channel_size: 1000           # 通道缓冲区大小
+    batch_size: 10               # 批量处理大小
+    flush_interval: "5s"         # 强制刷新间隔
+    retry_attempts: 3            # 重试次数
+    retry_delay: "100ms"         # 重试延迟
+
+  # 性能配置
+  performance:
+    enable_batching: true        # 启用批量处理
+    enable_compression: false    # 启用事件压缩（暂未实现）
+    max_memory_usage: "100MB"    # 最大内存使用（暂未实现）
 
 # 分布式锁配置
 distributed_lock:

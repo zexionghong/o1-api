@@ -6,10 +6,12 @@ import (
 
 // RedisFactory Redis工厂
 type RedisFactory struct {
-	client      *RedisClient
-	cache       *CacheService
-	lockService *DistributedLockService
-	logger      logger.Logger
+	client              *RedisClient
+	cache               *CacheService
+	lockService         *DistributedLockService
+	invalidationService *CacheInvalidationService
+	cacheManager        *CacheManager
+	logger              logger.Logger
 }
 
 // NewRedisFactory 创建Redis工厂
@@ -26,11 +28,19 @@ func NewRedisFactory(log logger.Logger) (*RedisFactory, error) {
 	// 创建分布式锁服务
 	lockService := NewDistributedLockService(client, log)
 
+	// 创建缓存失效服务
+	invalidationService := NewCacheInvalidationService(cache, client, log)
+
+	// 创建缓存管理器
+	cacheManager := NewCacheManager(cache, client, invalidationService, log)
+
 	return &RedisFactory{
-		client:      client,
-		cache:       cache,
-		lockService: lockService,
-		logger:      log,
+		client:              client,
+		cache:               cache,
+		lockService:         lockService,
+		invalidationService: invalidationService,
+		cacheManager:        cacheManager,
+		logger:              log,
 	}, nil
 }
 
@@ -47,6 +57,16 @@ func (f *RedisFactory) GetCacheService() *CacheService {
 // GetLockService 获取分布式锁服务
 func (f *RedisFactory) GetLockService() *DistributedLockService {
 	return f.lockService
+}
+
+// GetInvalidationService 获取缓存失效服务
+func (f *RedisFactory) GetInvalidationService() *CacheInvalidationService {
+	return f.invalidationService
+}
+
+// GetCacheManager 获取缓存管理器
+func (f *RedisFactory) GetCacheManager() *CacheManager {
+	return f.cacheManager
 }
 
 // Close 关闭Redis连接
