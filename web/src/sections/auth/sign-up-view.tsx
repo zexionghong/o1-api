@@ -12,6 +12,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
+
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
@@ -295,7 +296,7 @@ export function SignUpView() {
         color="inherit"
         variant="outlined"
         onClick={handleGoToSignIn}
-        startIcon={<Iconify icon="eva:arrow-back-fill" />}
+        startIcon={<Iconify icon="eva:arrow-ios-upward-fill" />}
       >
         Back to Sign In
       </Button>

@@ -1,10 +1,14 @@
-import { ReactNode, useEffect } from 'react';
-import { useRouter } from 'src/routes/hooks';
-import { useAuth } from 'src/contexts/auth-context';
+import type { ReactNode } from 'react';
+
+import { useEffect } from 'react';
 
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { useRouter } from 'src/routes/hooks';
+
+import { useAuth } from 'src/contexts/auth-context';
 
 interface ProtectedRouteProps {
   children: ReactNode;

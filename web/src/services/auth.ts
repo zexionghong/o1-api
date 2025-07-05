@@ -1,4 +1,4 @@
-import api, { ApiResponse } from './api';
+import api from './api';
 
 // 认证相关的类型定义
 export interface LoginRequest {

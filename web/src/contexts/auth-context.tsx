@@ -1,5 +1,10 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import AuthService, { UserInfo, LoginRequest, RegisterRequest, ChangePasswordRequest } from '../services/auth';
+import type { ReactNode } from 'react';
+
+import React, { useEffect, useContext, useReducer, createContext } from 'react';
+
+import AuthService from '../services/auth';
+
+import type { UserInfo, LoginRequest, RegisterRequest, ChangePasswordRequest } from '../services/auth';
 
 // 认证状态类型
 export interface AuthState {
@@ -185,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return () => clearInterval(interval);
     }
+    return undefined; // 明确返回undefined
   }, [state.isAuthenticated]);
 
   const contextValue: AuthContextType = {

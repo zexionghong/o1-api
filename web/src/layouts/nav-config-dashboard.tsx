@@ -19,6 +19,16 @@ export const navData = [
     icon: icon('ic-analytics'),
   },
   {
+    title: 'Real Dashboard',
+    path: '/real-dashboard',
+    icon: icon('ic-analytics'),
+    info: (
+      <Label color="success" variant="inverted">
+        NEW
+      </Label>
+    ),
+  },
+  {
     title: 'User',
     path: '/user',
     icon: icon('ic-user'),
