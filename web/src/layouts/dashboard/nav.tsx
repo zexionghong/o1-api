@@ -6,6 +6,7 @@ import { varAlpha } from 'minimal-shared/utils';
 import Box from '@mui/material/Box';
 import ListItem from '@mui/material/ListItem';
 import { useTheme } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
 import ListItemButton from '@mui/material/ListItemButton';
 import Drawer, { drawerClasses } from '@mui/material/Drawer';
 
@@ -13,13 +14,12 @@ import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { Logo } from 'src/components/logo';
+import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
-import { NavUpgrade } from '../components/nav-upgrade';
-import { WorkspacesPopover } from '../components/workspaces-popover';
+
 
 import type { NavItem } from '../nav-config-dashboard';
-import type { WorkspacesPopoverProps } from '../components/workspaces-popover';
 
 // ----------------------------------------------------------------------
 
@@ -29,17 +29,23 @@ export type NavContentProps = {
     topArea?: React.ReactNode;
     bottomArea?: React.ReactNode;
   };
-  workspaces: WorkspacesPopoverProps['data'];
   sx?: SxProps<Theme>;
+  collapsed?: boolean;
+  onToggle?: () => void;
 };
 
 export function NavDesktop({
   sx,
   data,
   slots,
-  workspaces,
   layoutQuery,
-}: NavContentProps & { layoutQuery: Breakpoint }) {
+  open = true,
+  onToggle,
+}: NavContentProps & {
+  layoutQuery: Breakpoint;
+  open?: boolean;
+  onToggle?: () => void;
+}) {
   const theme = useTheme();
 
   return (
@@ -54,15 +60,18 @@ export function NavDesktop({
         position: 'fixed',
         flexDirection: 'column',
         zIndex: 'var(--layout-nav-zIndex)',
-        width: 'var(--layout-nav-vertical-width)',
+        width: open ? 'var(--layout-nav-vertical-width)' : '80px',
         borderRight: `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.12)}`,
+        transition: theme.transitions.create(['width'], {
+          duration: theme.transitions.duration.shorter,
+        }),
         [theme.breakpoints.up(layoutQuery)]: {
           display: 'flex',
         },
         ...sx,
       }}
     >
-      <NavContent data={data} slots={slots} workspaces={workspaces} />
+      <NavContent data={data} slots={slots} collapsed={!open} onToggle={onToggle} />
     </Box>
   );
 }
@@ -75,8 +84,9 @@ export function NavMobile({
   open,
   slots,
   onClose,
-  workspaces,
-}: NavContentProps & { open: boolean; onClose: () => void }) {
+  collapsed = false,
+  onToggle,
+}: NavContentProps & { open: boolean; onClose: () => void; collapsed?: boolean; onToggle?: () => void }) {
   const pathname = usePathname();
 
   useEffect(() => {
@@ -95,28 +105,51 @@ export function NavMobile({
           pt: 2.5,
           px: 2.5,
           overflow: 'unset',
-          width: 'var(--layout-nav-mobile-width)',
+          width: collapsed ? '80px' : 'var(--layout-nav-mobile-width)',
+          transition: (theme) => theme.transitions.create(['width'], {
+            duration: theme.transitions.duration.shorter,
+          }),
           ...sx,
         },
       }}
     >
-      <NavContent data={data} slots={slots} workspaces={workspaces} />
+      <NavContent data={data} slots={slots} collapsed={collapsed} onToggle={onToggle} />
     </Drawer>
   );
 }
 
 // ----------------------------------------------------------------------
 
-export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
+export function NavContent({ data, slots, sx, collapsed = false, onToggle }: NavContentProps) {
   const pathname = usePathname();
 
   return (
     <>
-      <Logo />
-
-      {slots?.topArea}
-
-      <WorkspacesPopover data={workspaces} sx={{ my: 2 }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', mb: 2 }}>
+        {!collapsed && <Logo />}
+        {onToggle && (
+          <IconButton
+            onClick={onToggle}
+            sx={{
+              width: 36,
+              height: 36,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              '&:hover': {
+                borderColor: 'primary.main',
+                bgcolor: 'action.hover',
+              },
+              ...(collapsed && { mx: 'auto' })
+            }}
+          >
+            <Iconify
+              icon={collapsed ? "eva:arrow-ios-forward-outline" : "eva:arrow-ios-back-outline"}
+              width={20}
+            />
+          </IconButton>
+        )}
+      </Box>
 
       <Scrollbar fillContent>
         <Box
@@ -149,15 +182,16 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
                     href={item.path}
                     sx={[
                       (theme) => ({
-                        pl: 2,
+                        pl: collapsed ? 1.5 : 2,
                         py: 1,
-                        gap: 2,
+                        gap: collapsed ? 0 : 2,
                         pr: 1.5,
                         borderRadius: 0.75,
                         typography: 'body2',
                         fontWeight: 'fontWeightMedium',
                         color: theme.vars.palette.text.secondary,
                         minHeight: 44,
+                        justifyContent: collapsed ? 'center' : 'flex-start',
                         ...(isActived && {
                           fontWeight: 'fontWeightSemiBold',
                           color: theme.vars.palette.primary.main,
@@ -168,16 +202,19 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
                         }),
                       }),
                     ]}
+                    title={collapsed ? item.title : undefined}
                   >
                     <Box component="span" sx={{ width: 24, height: 24 }}>
                       {item.icon}
                     </Box>
 
-                    <Box component="span" sx={{ flexGrow: 1 }}>
-                      {item.title}
-                    </Box>
+                    {!collapsed && (
+                      <Box component="span" sx={{ flexGrow: 1 }}>
+                        {item.title}
+                      </Box>
+                    )}
 
-                    {item.info && item.info}
+                    {!collapsed && item.info && item.info}
                   </ListItemButton>
                 </ListItem>
               );
@@ -185,10 +222,6 @@ export function NavContent({ data, slots, workspaces, sx }: NavContentProps) {
           </Box>
         </Box>
       </Scrollbar>
-
-      {slots?.bottomArea}
-
-      <NavUpgrade />
     </>
   );
 }
