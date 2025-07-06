@@ -107,34 +107,13 @@ func (s *billingServiceImpl) ProcessBilling(ctx context.Context, usageLog *entit
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// 检查用户余额
-	if user.Balance < usageLog.Cost {
-		s.logger.WithFields(map[string]interface{}{
-			"user_id":      user.ID,
-			"balance":      user.Balance,
-			"cost":         usageLog.Cost,
-			"usage_log_id": usageLog.ID,
-		}).Warn("Insufficient balance for billing")
-
-		// 创建失败的计费记录
-		description := fmt.Sprintf("Insufficient balance for usage log %d", usageLog.ID)
-		billingRecord := &entities.BillingRecord{
-			UserID:      usageLog.UserID,
-			UsageLogID:  usageLog.ID,
-			Amount:      usageLog.Cost,
-			Currency:    "USD",
-			BillingType: entities.BillingTypeUsage,
-			Description: &description,
-			Status:      entities.BillingStatusFailed,
-			CreatedAt:   time.Now(),
-		}
-
-		if err := s.billingRepo.Create(ctx, billingRecord); err != nil {
-			s.logger.WithField("error", err.Error()).Error("Failed to create failed billing record")
-		}
-
-		return fmt.Errorf("insufficient balance: required %.8f, available %.6f", usageLog.Cost, user.Balance)
-	}
+	// 记录扣费信息（允许余额变负数）
+	s.logger.WithFields(map[string]interface{}{
+		"user_id":      user.ID,
+		"balance":      user.Balance,
+		"cost":         usageLog.Cost,
+		"usage_log_id": usageLog.ID,
+	}).Info("Processing billing - balance may become negative")
 
 	// 扣减用户余额
 	if err := user.DeductBalance(usageLog.Cost); err != nil {

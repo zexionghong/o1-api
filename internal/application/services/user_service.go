@@ -10,6 +10,7 @@ import (
 	redisInfra "ai-api-gateway/internal/infrastructure/redis"
 
 	"github.com/go-redis/redis/v8"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UserService 用户服务接口
@@ -73,6 +74,15 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, req *dto.CreateUserReq
 	// 创建用户实体
 	user := req.ToEntity()
 
+	// 如果提供了密码，进行哈希处理
+	if req.Password != nil && *req.Password != "" {
+		hashedPassword, err := s.hashPassword(*req.Password)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+		user.PasswordHash = &hashedPassword
+	}
+
 	// 保存到数据库
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -80,6 +90,15 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, req *dto.CreateUserReq
 
 	// 返回响应
 	return (&dto.UserResponse{}).FromEntity(user), nil
+}
+
+// hashPassword 哈希密码
+func (s *userServiceImpl) hashPassword(password string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
 }
 
 // GetUser 获取用户

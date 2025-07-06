@@ -36,14 +36,12 @@ func (u *User) CanMakeRequest() bool {
 	return u.IsActive() && u.Balance > 0
 }
 
-// DeductBalance 扣减用户余额
+// DeductBalance 扣减用户余额（允许余额变负数）
 func (u *User) DeductBalance(amount float64) error {
 	if amount < 0 {
 		return ErrInvalidAmount
 	}
-	if u.Balance < amount {
-		return ErrInsufficientBalance
-	}
+	// 移除余额检查，允许余额变负数
 	u.Balance -= amount
 	u.UpdatedAt = time.Now()
 	return nil

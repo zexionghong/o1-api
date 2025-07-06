@@ -328,15 +328,12 @@ func (g *gatewayServiceImpl) processBilling(ctx context.Context, userID int64, u
 		return
 	}
 
-	// 检查用户余额
-	if user.Balance < cost {
-		g.logger.WithFields(map[string]interface{}{
-			"user_id": userID,
-			"balance": user.Balance,
-			"cost":    cost,
-		}).Warn("Insufficient balance for billing")
-		return
-	}
+	// 记录扣费信息（允许余额变负数）
+	g.logger.WithFields(map[string]interface{}{
+		"user_id": userID,
+		"balance": user.Balance,
+		"cost":    cost,
+	}).Info("Processing billing - balance may become negative")
 
 	// 扣减用户余额
 	updateReq := &dto.BalanceUpdateRequest{
