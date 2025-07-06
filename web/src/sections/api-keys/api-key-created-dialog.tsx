@@ -6,11 +6,11 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -70,7 +70,7 @@ export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKe
           <Alert severity="warning" sx={{ mb: 3 }}>
             <Typography variant="body2">
               <strong>Important:</strong> This is the only time you will see the complete API key. 
-              Please copy it now and store it securely. You won't be able to see it again.
+              Please copy it now and store it securely. You won&apos;t be able to see it again.
             </Typography>
           </Alert>
 
@@ -137,7 +137,7 @@ export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKe
 
       <DialogActions>
         <Button onClick={handleClose} variant="contained" color="primary">
-          I've Saved My API Key
+          I&apos;ve Saved My API Key
         </Button>
       </DialogActions>
     </Dialog>

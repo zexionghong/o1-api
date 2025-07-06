@@ -17,8 +17,6 @@ import { Logo } from 'src/components/logo';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
-
-
 import type { NavItem } from '../nav-config-dashboard';
 
 // ----------------------------------------------------------------------

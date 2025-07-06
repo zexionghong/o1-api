@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Popover from '@mui/material/Popover';
+import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
 import MenuList from '@mui/material/MenuList';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
-import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
-import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
-import Tooltip from '@mui/material/Tooltip';
+import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -107,7 +107,11 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
     <>
       <TableRow hover tabIndex={-1} role="checkbox" selected={selected}>
         <TableCell padding="checkbox">
-          <Checkbox disableRipple checked={selected} onChange={onSelectRow} />
+          <Checkbox
+            disableRipple
+            checked={selected}
+            onChange={(event) => onSelectRow(event as any)}
+          />
         </TableCell>
 
         <TableCell component="th" scope="row">

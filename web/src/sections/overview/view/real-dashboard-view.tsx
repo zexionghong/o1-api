@@ -1,22 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
-import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
+import Alert from '@mui/material/Alert';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
+import Button from '@mui/material/Button';
+import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
+import CardContent from '@mui/material/CardContent';
+import TableContainer from '@mui/material/TableContainer';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { useRouter } from 'src/routes/hooks';
 
@@ -44,16 +44,7 @@ interface ApiKey {
   created_at: string;
 }
 
-interface UsageRecord {
-  id: number;
-  request_id: string;
-  method: string;
-  endpoint: string;
-  total_tokens: number;
-  cost: number;
-  status_code: number;
-  created_at: string;
-}
+
 
 // ----------------------------------------------------------------------
 

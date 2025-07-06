@@ -54,7 +54,7 @@ export function SignInView() {
         password: formData.password,
       });
       router.push('/');
-    } catch (error) {
+    } catch {
       // Error is handled by the auth context
     }
   }, [formData, login, router]);

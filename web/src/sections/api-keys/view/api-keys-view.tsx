@@ -4,22 +4,23 @@ import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
-import Button from '@mui/material/Button';
-import TableBody from '@mui/material/TableBody';
-import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
-import TablePagination from '@mui/material/TablePagination';
 import Alert from '@mui/material/Alert';
-import CircularProgress from '@mui/material/CircularProgress';
+import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import TableBody from '@mui/material/TableBody';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import TextField from '@mui/material/TextField';
+import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
+import CircularProgress from '@mui/material/CircularProgress';
 
-import { Iconify } from 'src/components/iconify';
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
 import { ApiKeyTableRow } from '../api-key-table-row';
@@ -181,7 +182,7 @@ export function ApiKeysView() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: status,
+          status,
         }),
       });
 
@@ -351,7 +352,7 @@ export function ApiKeysView() {
                   { id: 'status', label: t('common.status') },
                   { id: 'last_used_at', label: t('api_keys.last_used') },
                   { id: 'created_at', label: t('common.created_at') },
-                  { id: '' },
+                  { id: '', label: '' },
                 ]}
               />
               <TableBody>

@@ -19,12 +19,11 @@ import CardContent from '@mui/material/CardContent';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
-import CircularProgress from '@mui/material/CircularProgress';
 import TablePagination from '@mui/material/TablePagination';
-
-import { DateRangePicker } from 'src/components/date-range-picker';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { Iconify } from 'src/components/iconify';
+import { DateRangePicker } from 'src/components/date-range-picker';
 
 // ----------------------------------------------------------------------
 
@@ -299,13 +298,9 @@ export function ApiKeyDetailDialog({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleString();
 
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(4)}`;
-  };
+  const formatCurrency = (amount: number) => `$${amount.toFixed(4)}`;
 
 
 
