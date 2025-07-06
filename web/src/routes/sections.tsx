@@ -18,6 +18,7 @@ export const RealDashboardPage = lazy(() => import('src/pages/real-dashboard'));
 export const ApiKeysPage = lazy(() => import('src/pages/api-keys'));
 export const ProfilePage = lazy(() => import('src/pages/profile'));
 export const WalletPage = lazy(() => import('src/pages/wallet'));
+export const ToolsPage = lazy(() => import('src/pages/tools'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
@@ -57,6 +58,7 @@ export const routesSection: RouteObject[] = [
       { index: true, element: <RealDashboardPage /> },
       { path: 'api-keys', element: <ApiKeysPage /> },
       { path: 'wallet', element: <WalletPage /> },
+      { path: 'tools', element: <ToolsPage /> },
       { path: 'profile', element: <ProfilePage /> },
     ],
   },

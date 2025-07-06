@@ -83,6 +83,25 @@
     "recharge_failed": "Recharge failed, please try again",
     "recharge_success": "Recharge successful"
   },
+  "tools": {
+    "title": "Tools Collection",
+    "description": "Explore our collection of AI tools to boost your productivity and creativity",
+    "categories": "Categories",
+    "category_all": "All",
+    "category_automation": "Automation",
+    "category_creative": "Creative",
+    "category_communication": "Communication",
+    "category_development": "Development",
+    "category_analytics": "Analytics",
+    "features": "Features",
+    "available": "Available",
+    "beta": "Beta",
+    "coming_soon": "Coming Soon",
+    "launch": "Launch Tool",
+    "try_beta": "Try Beta",
+    "no_tools_found": "No tools found",
+    "try_different_category": "Try selecting a different category"
+  },
   "auth": {
     "login": "Login",
     "logout": "Logout",
@@ -118,6 +137,7 @@
     "dashboard": "Dashboard",
     "api_keys": "API Keys",
     "wallet": "Wallet",
+    "tools": "Tools",
     "profile": "Profile",
     "settings": "Settings",
     "documentation": "Documentation",

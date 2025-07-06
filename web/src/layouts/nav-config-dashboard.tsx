@@ -33,6 +33,11 @@ export function useNavData() {
       icon: icon('ic-banking'),
     },
     {
+      title: t('navigation.tools'),
+      path: '/tools',
+      icon: icon('ic-tools'),
+    },
+    {
       title: t('navigation.profile'),
       path: '/profile',
       icon: icon('ic-user'),
@@ -56,6 +61,11 @@ export const navData = [
     title: 'Wallet',
     path: '/wallet',
     icon: icon('ic-banking'),
+  },
+  {
+    title: 'Tools',
+    path: '/tools',
+    icon: icon('ic-tools'),
   },
   {
     title: 'Profile',

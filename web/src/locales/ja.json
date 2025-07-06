@@ -83,6 +83,25 @@
     "recharge_failed": "チャージに失敗しました。再試行してください",
     "recharge_success": "チャージが成功しました"
   },
+  "tools": {
+    "title": "ツールコレクション",
+    "description": "生産性と創造性を向上させるAIツールのコレクションを探索してください",
+    "categories": "カテゴリ",
+    "category_all": "すべて",
+    "category_automation": "自動化",
+    "category_creative": "クリエイティブ",
+    "category_communication": "コミュニケーション",
+    "category_development": "開発",
+    "category_analytics": "分析",
+    "features": "機能",
+    "available": "利用可能",
+    "beta": "ベータ版",
+    "coming_soon": "近日公開",
+    "launch": "ツールを起動",
+    "try_beta": "ベータ版を試す",
+    "no_tools_found": "ツールが見つかりません",
+    "try_different_category": "別のカテゴリを選択してみてください"
+  },
   "auth": {
     "login": "ログイン",
     "logout": "ログアウト",
@@ -118,6 +137,7 @@
     "dashboard": "ダッシュボード",
     "api_keys": "APIキー",
     "wallet": "ウォレット",
+    "tools": "ツール",
     "profile": "プロフィール",
     "settings": "設定",
     "documentation": "ドキュメント",

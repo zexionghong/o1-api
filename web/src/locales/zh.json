@@ -83,6 +83,25 @@
     "recharge_failed": "充值失败，请重试",
     "recharge_success": "充值成功"
   },
+  "tools": {
+    "title": "工具合集",
+    "description": "探索我们的AI工具集合，提升您的工作效率和创造力",
+    "categories": "分类",
+    "category_all": "全部",
+    "category_automation": "自动化",
+    "category_creative": "创意",
+    "category_communication": "沟通",
+    "category_development": "开发",
+    "category_analytics": "分析",
+    "features": "功能特性",
+    "available": "可用",
+    "beta": "测试版",
+    "coming_soon": "即将推出",
+    "launch": "启动工具",
+    "try_beta": "试用测试版",
+    "no_tools_found": "未找到工具",
+    "try_different_category": "尝试选择其他分类"
+  },
   "auth": {
     "login": "登录",
     "logout": "退出登录",
@@ -118,6 +137,7 @@
     "dashboard": "仪表板",
     "api_keys": "API 密钥",
     "wallet": "钱包",
+    "tools": "工具合集",
     "profile": "个人中心",
     "settings": "设置",
     "documentation": "文档",
