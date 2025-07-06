@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -14,8 +14,8 @@ import FormControl from '@mui/material/FormControl';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import InputLabel from '@mui/material/InputLabel';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -40,6 +40,7 @@ interface Model {
   display_name: string;
   model_type: string;
   status: string;
+  provider?: string;
 }
 
 interface ApiKey {
@@ -92,12 +93,12 @@ const TOOL_TYPES: ToolType[] = [
 ];
 
 // 硬编码的模型数据
-const AVAILABLE_MODELS: Model[] = [
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
-  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'OpenAI' },
-  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
-  { id: 'dall-e-3', name: 'DALL-E 3', provider: 'OpenAI' },
-  { id: 'stable-diffusion-xl', name: 'Stable Diffusion XL', provider: 'Stability AI' }
+const AVAILABLE_MODELS = [
+  { id: 1, name: 'gpt-4o', display_name: 'GPT-4o', model_type: 'text', status: 'active', provider: 'OpenAI' },
+  { id: 2, name: 'gpt-4-turbo', display_name: 'GPT-4 Turbo', model_type: 'text', status: 'active', provider: 'OpenAI' },
+  { id: 3, name: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet', model_type: 'text', status: 'active', provider: 'Anthropic' },
+  { id: 4, name: 'dall-e-3', display_name: 'DALL-E 3', model_type: 'image', status: 'active', provider: 'OpenAI' },
+  { id: 5, name: 'stable-diffusion-xl', display_name: 'Stable Diffusion XL', model_type: 'image', status: 'active', provider: 'Stability AI' }
 ];
 
 // ----------------------------------------------------------------------
@@ -185,9 +186,9 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
   const getSupportedModels = useCallback(() => {
     // 优先使用从API获取的工具类型数据
     if (toolTypes.length > 0) {
-      const toolType = toolTypes.find(t => t.id === selectedToolType);
-      if (toolType && toolType.supported_models) {
-        return toolType.supported_models;
+      const apiToolType = toolTypes.find(t => t.id === selectedToolType);
+      if (apiToolType && apiToolType.supported_models) {
+        return apiToolType.supported_models;
       }
     }
 
@@ -199,8 +200,8 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
     const availableModels = models.length > 0 ? models : AVAILABLE_MODELS;
 
     return availableModels.filter(model => {
-      // 对于API数据，使用name字段匹配；对于硬编码数据，使用id字段匹配
-      const modelIdentifier = models.length > 0 ? model.name : model.id;
+      // 对于API数据，使用name字段匹配；对于硬编码数据，使用name字段匹配
+      const modelIdentifier = model.name;
       return toolType.supported_models.includes(modelIdentifier);
     });
   }, [selectedToolType, models, toolTypes]);
@@ -263,13 +264,13 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
     onClose();
   }, [onClose]);
 
-  const selectedToolTypeData = TOOL_TYPES.find(t => t.id === selectedToolType);
+  const selectedToolTypeData = TOOL_TYPES.find(type => type.id === selectedToolType);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Iconify icon="solar:add-circle-bold" sx={{ color: 'primary.main' }} />
+          <Iconify icon="solar:pen-bold" sx={{ color: 'primary.main' }} />
           <Typography variant="h6">{t('tools.create_tool')}</Typography>
         </Box>
       </DialogTitle>
@@ -353,10 +354,10 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
                 <InputLabel>{t('tools.select_model')}</InputLabel>
                 <Select
                   value={formData.model_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, model_id: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, model_id: e.target.value as number }))}
                   label={t('tools.select_model')}
                 >
-                  {supportedModels.map((model) => (
+                  {supportedModels.map((model: Model) => (
                     <MenuItem key={model.id} value={model.id}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                         <Typography>{model.display_name || model.name}</Typography>
@@ -374,7 +375,7 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
                 <InputLabel>{t('tools.select_api_key')}</InputLabel>
                 <Select
                   value={formData.api_key_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, api_key_id: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, api_key_id: e.target.value as number }))}
                   label={t('tools.select_api_key')}
                 >
                   {apiKeys.map((apiKey) => (
@@ -419,9 +420,9 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
                         justifyContent: 'center',
                       }}
                     >
-                      <Iconify 
-                        icon={selectedToolTypeData.icon} 
-                        sx={{ width: 20, height: 20, color: 'white' }} 
+                      <Iconify
+                        icon="solar:pen-bold"
+                        sx={{ width: 20, height: 20, color: 'white' }}
                       />
                     </Box>
                     <Box>
@@ -462,7 +463,7 @@ export function ToolCreateDialog({ open, onClose, onSuccess }: Props) {
           variant="contained"
           onClick={handleSubmit}
           disabled={!selectedToolType || !formData.name || !formData.model_id || !formData.api_key_id || loading}
-          startIcon={loading ? <CircularProgress size={16} /> : <Iconify icon="solar:add-circle-bold" />}
+          startIcon={loading ? <CircularProgress size={16} /> : <Iconify icon="solar:pen-bold" />}
         >
           {loading ? t('common.creating') : t('tools.create_tool')}
         </Button>

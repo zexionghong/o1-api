@@ -205,7 +205,7 @@ export function ToolLaunchDialog({ open, tool, onClose, onLaunch }: Props) {
             }}
           >
             <Iconify 
-              icon={tool.icon} 
+              icon="solar:pen-bold"
               sx={{ width: 24, height: 24, color: 'white' }} 
             />
           </Box>
@@ -379,7 +379,7 @@ export function ToolLaunchDialog({ open, tool, onClose, onLaunch }: Props) {
         <Button
           variant="contained"
           onClick={handleLaunch}
-          disabled={!selectedApiKey || !selectedModel || loading || (state.user?.balance && state.user.balance < estimatedCost)}
+          disabled={!selectedApiKey || !selectedModel || loading || Boolean(state.user?.balance && state.user.balance < estimatedCost)}
           startIcon={<Iconify icon="solar:play-bold" />}
         >
           {t('tools.launch_tool')}

@@ -96,7 +96,7 @@ export function WalletView() {
             <CardContent sx={{ textAlign: 'center', py: 4 }}>
               <Box sx={{ mb: 3 }}>
                 <Iconify 
-                  icon="solar:wallet-bold" 
+                  icon="solar:cart-3-bold"
                   sx={{ 
                     width: 80, 
                     height: 80, 
@@ -129,7 +129,7 @@ export function WalletView() {
               <Button
                 variant="contained"
                 size="large"
-                startIcon={<Iconify icon="solar:card-bold" />}
+                startIcon={<Iconify icon="solar:cart-3-bold" />}
                 onClick={handleRechargeDialogToggle}
                 fullWidth
                 sx={{ py: 1.5 }}

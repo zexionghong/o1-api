@@ -46,6 +46,7 @@ export interface UserInfo {
   username: string;
   email: string;
   full_name?: string;
+  balance?: number;
 }
 
 export interface UserProfile {

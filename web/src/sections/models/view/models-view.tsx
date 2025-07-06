@@ -162,17 +162,17 @@ export function ModelsView() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'text':
-        return 'solar:text-bold-duotone';
+        return 'solar:pen-bold';
       case 'image':
-        return 'solar:gallery-bold-duotone';
+        return 'solar:eye-bold';
       case 'audio':
-        return 'solar:microphone-bold-duotone';
+        return 'solar:share-bold';
       case 'video':
-        return 'solar:videocamera-bold-duotone';
+        return 'solar:cart-3-bold';
       case 'multimodal':
-        return 'solar:layers-bold-duotone';
+        return 'solar:restart-bold';
       default:
-        return 'solar:cpu-bolt-bold-duotone';
+        return 'solar:pen-bold';
     }
   };
 
@@ -264,9 +264,9 @@ export function ModelsView() {
                       mr: 2,
                     }}
                   >
-                    <Iconify 
-                      icon={model.icon} 
-                      sx={{ width: 24, height: 24, color: 'white' }} 
+                    <Iconify
+                      icon={getTypeIcon(model.type)}
+                      sx={{ width: 24, height: 24, color: 'white' }}
                     />
                   </Box>
                   <Box sx={{ flexGrow: 1 }}>
@@ -328,7 +328,7 @@ export function ModelsView() {
                 <Button
                   fullWidth
                   variant="outlined"
-                  startIcon={<Iconify icon="solar:info-circle-bold" />}
+                  startIcon={<Iconify icon="solar:eye-bold" />}
                 >
                   {t('models.view_details')}
                 </Button>
@@ -342,7 +342,7 @@ export function ModelsView() {
       {filteredModels.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Iconify 
-            icon="solar:box-bold-duotone" 
+            icon="eva:search-fill"
             sx={{ width: 64, height: 64, color: 'text.disabled', mb: 2 }} 
           />
           <Typography variant="h6" color="text.secondary">

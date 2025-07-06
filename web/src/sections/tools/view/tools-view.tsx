@@ -1,22 +1,22 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Grid from '@mui/system/Grid';
-import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import CardContent from '@mui/material/CardContent';
+import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/system/Grid';
 
 import { Iconify } from 'src/components/iconify';
 
-import { ToolCreateDialog } from '../tool-create-dialog';
 import { ToolEditDialog } from '../tool-edit-dialog';
+import { ToolCreateDialog } from '../tool-create-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -132,6 +132,7 @@ export function ToolsView() {
             created_at: '2024-01-15T10:00:00Z',
             updated_at: '2024-01-15T10:00:00Z',
             usage_count: 156,
+            tool: { name: 'AI Chatbot' },
             creator: { username: 'john_doe' }
           },
           {
@@ -147,6 +148,7 @@ export function ToolsView() {
             created_at: '2024-01-10T15:30:00Z',
             updated_at: '2024-01-12T09:15:00Z',
             usage_count: 23,
+            tool: { name: 'Image Generator' },
             creator: { username: 'john_doe' }
           }
         ];
@@ -177,9 +179,7 @@ export function ToolsView() {
     }
   }, [selectedCategory, userTools]);
 
-  const getToolTypeConfig = (type: string) => {
-    return TOOL_TYPES.find(t => t.id === type) || TOOL_TYPES[0];
-  };
+  const getToolTypeConfig = (type: string) => TOOL_TYPES.find(toolType => toolType.id === type) || TOOL_TYPES[0];
 
   const handleCreateTool = useCallback(() => {
     setShowCreateDialog(true);
@@ -206,7 +206,7 @@ export function ToolsView() {
         setEditingTool(tool);
         setShowEditDialog(true);
         break;
-      case 'share':
+      case 'share': {
         // 分享工具
         const shareUrl = tool.share_url || `${window.location.origin}/tools/${tool.id}`;
         navigator.clipboard.writeText(shareUrl)
@@ -217,9 +217,12 @@ export function ToolsView() {
             setSnackbar({ open: true, message: t('tools.share_failed'), severity: 'error' });
           });
         break;
+      }
       case 'delete':
         // 删除工具
         console.log('Delete tool:', tool.id);
+        break;
+      default:
         break;
     }
   }, [t]);
@@ -237,7 +240,7 @@ export function ToolsView() {
         </Box>
         <Button
           variant="contained"
-          startIcon={<Iconify icon="solar:add-circle-bold" />}
+          startIcon={<Iconify icon="solar:pen-bold" />}
           onClick={handleCreateTool}
           sx={{ flexShrink: 0 }}
         >
@@ -302,7 +305,7 @@ export function ToolsView() {
                         }}
                       >
                         <Iconify
-                          icon={typeConfig.icon}
+                          icon="solar:pen-bold"
                           sx={{ width: 24, height: 24, color: 'white' }}
                         />
                       </Box>
@@ -398,9 +401,9 @@ export function ToolsView() {
       {/* 空状态 */}
       {filteredTools.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Iconify 
-            icon="solar:box-bold-duotone" 
-            sx={{ width: 64, height: 64, color: 'text.disabled', mb: 2 }} 
+          <Iconify
+            icon="solar:pen-bold"
+            sx={{ width: 64, height: 64, color: 'text.disabled', mb: 2 }}
           />
           <Typography variant="h6" color="text.secondary">
             {t('tools.no_tools_found')}

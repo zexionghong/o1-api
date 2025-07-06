@@ -106,7 +106,7 @@ export function RechargeDialog({ open, onClose, onSuccess, currentBalance }: Pro
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Iconify icon="solar:card-bold" />
+          <Iconify icon="solar:cart-3-bold" />
           {t('wallet.recharge')}
         </Box>
       </DialogTitle>
