@@ -53,7 +53,7 @@ func main() {
 	log.Info("Database connection established")
 
 	// 创建仓储工厂
-	repoFactory := repositories.NewRepositoryFactory(dbConn.DB())
+	repoFactory := repositories.NewRepositoryFactory(dbConn)
 
 	// 创建Redis工厂（可选）
 	var redisFactory *redis.RedisFactory

@@ -137,6 +137,15 @@ func (f *ServiceFactory) AuthService() AuthService {
 	)
 }
 
+// ToolService 获取工具服务
+func (f *ServiceFactory) ToolService() *ToolService {
+	return NewToolService(
+		f.repoFactory.ToolRepository(),
+		f.repoFactory.APIKeyRepository(),
+		f.repoFactory.DB(),
+	)
+}
+
 // UsageLogRepository 获取使用日志仓储
 func (f *ServiceFactory) UsageLogRepository() repositories.UsageLogRepository {
 	return f.repoFactory.UsageLogRepository()

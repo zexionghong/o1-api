@@ -38,6 +38,11 @@ export function useNavData() {
       icon: icon('ic-tools'),
     },
     {
+      title: t('navigation.models'),
+      path: '/models',
+      icon: icon('ic-cpu'),
+    },
+    {
       title: t('navigation.profile'),
       path: '/profile',
       icon: icon('ic-user'),

@@ -84,6 +84,7 @@ func (r *Router) SetupRoutes() {
 	)
 	healthHandler := handlers.NewHealthHandler(r.gatewayService, r.logger)
 	authHandler := handlers.NewAuthHandler(r.serviceFactory.AuthService(), r.logger)
+	toolHandler := handlers.NewToolHandler(r.serviceFactory.ToolService(), r.logger)
 
 	// 健康检查路由（无需认证）
 	health := r.engine.Group("/health")
@@ -179,6 +180,30 @@ func (r *Router) SetupRoutes() {
 			apiKeys.DELETE("/:id", apiKeyHandler.DeleteAPIKey)
 		}
 
+		// 工具管理路由
+		tools := admin.Group("/tools")
+		{
+			// 用户工具实例路由
+			tools.GET("/", toolHandler.GetUserToolInstances)
+			tools.POST("/", toolHandler.CreateUserToolInstance)
+			tools.GET("/:id", toolHandler.GetUserToolInstance)
+			tools.PUT("/:id", toolHandler.UpdateUserToolInstance)
+			tools.DELETE("/:id", toolHandler.DeleteUserToolInstance)
+			tools.POST("/:id/usage", toolHandler.IncrementUsage)
+
+			// 工具相关资源路由
+			tools.GET("/api-keys", toolHandler.GetUserAPIKeys)
+		}
+
+	}
+
+	// 公开工具路由（无需认证）
+	publicTools := r.engine.Group("/tools")
+	{
+		publicTools.GET("/types", toolHandler.GetTools)
+		publicTools.GET("/models", toolHandler.GetModels)
+		publicTools.GET("/public", toolHandler.GetPublicTools)
+		publicTools.GET("/share/:token", toolHandler.GetSharedToolInstance)
 	}
 
 	// 404处理

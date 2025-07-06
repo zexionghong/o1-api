@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
 
@@ -20,6 +21,7 @@ type Config struct {
 // Connection 数据库连接管理器
 type Connection struct {
 	db     *sql.DB
+	dbx    *sqlx.DB
 	config *Config
 }
 
@@ -41,8 +43,12 @@ func NewConnection(config *Config) (*Connection, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	// 创建sqlx连接
+	dbx := sqlx.NewDb(db, config.Driver)
+
 	return &Connection{
 		db:     db,
+		dbx:    dbx,
 		config: config,
 	}, nil
 }
@@ -50,6 +56,11 @@ func NewConnection(config *Config) (*Connection, error) {
 // DB 获取数据库连接
 func (c *Connection) DB() *sql.DB {
 	return c.db
+}
+
+// DBX 获取sqlx数据库连接
+func (c *Connection) DBX() *sqlx.DB {
+	return c.dbx
 }
 
 // Close 关闭数据库连接
