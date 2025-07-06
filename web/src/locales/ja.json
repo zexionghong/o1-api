@@ -11,6 +11,7 @@
     "create": "作成",
     "creating": "作成中...",
     "update": "更新",
+    "updating": "更新中...",
     "search": "検索",
     "filter": "フィルター",
     "clear": "クリア",
@@ -140,7 +141,10 @@
       "code_assistant": "コードアシスタント"
     },
     "share_success": "共有リンクをクリップボードにコピーしました",
-    "share_failed": "共有に失敗しました。もう一度お試しください"
+    "share_failed": "共有に失敗しました。もう一度お試しください",
+    "basic_info": "基本情報",
+    "configuration": "設定",
+    "update_tool": "ツールを更新"
   },
   "models": {
     "title": "AIモデル",

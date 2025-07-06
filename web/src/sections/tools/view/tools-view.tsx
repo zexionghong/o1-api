@@ -16,6 +16,7 @@ import Alert from '@mui/material/Alert';
 import { Iconify } from 'src/components/iconify';
 
 import { ToolCreateDialog } from '../tool-create-dialog';
+import { ToolEditDialog } from '../tool-edit-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -89,6 +90,8 @@ export function ToolsView() {
   const [userTools, setUserTools] = useState<UserTool[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingTool, setEditingTool] = useState<UserTool | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   const handleCategoryChange = useCallback((category: string) => {
@@ -186,6 +189,12 @@ export function ToolsView() {
     fetchUserTools(); // 重新获取工具列表
   }, [fetchUserTools]);
 
+  const handleEditSuccess = useCallback(() => {
+    fetchUserTools(); // 重新获取工具列表
+    setShowEditDialog(false);
+    setEditingTool(null);
+  }, [fetchUserTools]);
+
   const handleToolAction = useCallback((tool: UserTool, action: 'edit' | 'share' | 'delete' | 'launch') => {
     switch (action) {
       case 'launch':
@@ -194,7 +203,8 @@ export function ToolsView() {
         break;
       case 'edit':
         // 编辑工具
-        console.log('Edit tool:', tool.id);
+        setEditingTool(tool);
+        setShowEditDialog(true);
         break;
       case 'share':
         // 分享工具
@@ -406,6 +416,17 @@ export function ToolsView() {
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         onSuccess={handleCreateSuccess}
+      />
+
+      {/* 编辑工具对话框 */}
+      <ToolEditDialog
+        open={showEditDialog}
+        tool={editingTool}
+        onClose={() => {
+          setShowEditDialog(false);
+          setEditingTool(null);
+        }}
+        onSuccess={handleEditSuccess}
       />
 
       {/* 分享成功/失败提示 */}

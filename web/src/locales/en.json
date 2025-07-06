@@ -11,6 +11,7 @@
     "create": "Create",
     "creating": "Creating...",
     "update": "Update",
+    "updating": "Updating...",
     "search": "Search",
     "filter": "Filter",
     "clear": "Clear",
@@ -140,7 +141,10 @@
       "code_assistant": "Code Assistant"
     },
     "share_success": "Share link copied to clipboard",
-    "share_failed": "Share failed, please try again"
+    "share_failed": "Share failed, please try again",
+    "basic_info": "Basic Information",
+    "configuration": "Configuration",
+    "update_tool": "Update Tool"
   },
   "models": {
     "title": "AI Models",

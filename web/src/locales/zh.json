@@ -11,6 +11,7 @@
     "create": "创建",
     "creating": "创建中...",
     "update": "更新",
+    "updating": "更新中...",
     "search": "搜索",
     "filter": "筛选",
     "clear": "清除",
@@ -140,7 +141,10 @@
       "code_assistant": "代码助手"
     },
     "share_success": "分享链接已复制到剪贴板",
-    "share_failed": "分享失败，请重试"
+    "share_failed": "分享失败，请重试",
+    "basic_info": "基本信息",
+    "configuration": "配置信息",
+    "update_tool": "更新工具"
   },
   "models": {
     "title": "AI 模型",
