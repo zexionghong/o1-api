@@ -45,12 +45,24 @@
     "registration_success": "注册成功",
     "no_account": "还没有账户？",
     "get_started": "立即注册",
-    "have_account": "已有账户？"
+    "have_account": "已有账户？",
+    "or": "或",
+    "registration_successful": "注册成功！",
+    "account_created": "您的账户已成功创建。现在您可以使用您的凭据登录。",
+    "back_to_signin": "返回登录",
+    "username_required": "用户名是必需的",
+    "username_min_length": "用户名至少需要3个字符",
+    "email_required": "邮箱是必需的",
+    "email_invalid": "请输入有效的邮箱地址",
+    "password_required": "密码是必需的",
+    "password_min_length": "密码至少需要6个字符",
+    "confirm_password_required": "请确认您的密码",
+    "passwords_not_match": "密码不匹配",
+    "invalid_credentials_error": "用户名或密码错误"
   },
   "navigation": {
     "dashboard": "仪表板",
     "api_keys": "API 密钥",
-    "users": "用户管理",
     "settings": "设置",
     "profile": "个人资料",
     "documentation": "文档",
@@ -133,19 +145,7 @@
     "refund": "退款",
     "adjustment": "调整"
   },
-  "users": {
-    "title": "用户管理",
-    "username": "用户名",
-    "email": "邮箱",
-    "full_name": "全名",
-    "balance": "余额",
-    "status": "状态",
-    "created_at": "创建时间",
-    "active": "活跃",
-    "inactive": "非活跃",
-    "suspended": "已暂停",
-    "no_users": "未找到用户"
-  },
+
   "settings": {
     "title": "设置",
     "general": "常规",

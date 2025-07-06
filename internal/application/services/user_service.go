@@ -188,8 +188,8 @@ func (s *userServiceImpl) UpdateUser(ctx context.Context, id int64, req *dto.Upd
 		user.Status = *req.Status
 	}
 
-	// 保存更新
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	// 使用UpdateProfile方法，只更新用户资料，不影响密码
+	if err := s.userRepo.UpdateProfile(ctx, user); err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
@@ -321,8 +321,8 @@ func (s *userServiceImpl) updateBalanceInternal(ctx context.Context, id int64, r
 		return nil, fmt.Errorf("invalid operation: %s", req.Operation)
 	}
 
-	// 保存更新到数据库
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	// 使用专门的UpdateBalance方法，只更新余额
+	if err := s.userRepo.UpdateBalance(ctx, user.ID, user.Balance); err != nil {
 		return nil, fmt.Errorf("failed to update user balance: %w", err)
 	}
 

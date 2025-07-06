@@ -69,18 +69,32 @@ export class AuthService {
    * 用户登录
    */
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
+    try {
+      const response = await api.post<LoginResponse>('/auth/login', credentials);
 
-    if (response.success && response.data) {
-      // 存储token到localStorage
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-      localStorage.setItem('user_info', JSON.stringify(response.data.user));
+      if (response.success && response.data) {
+        // 存储token到localStorage
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem('refresh_token', response.data.refresh_token);
+        localStorage.setItem('user_info', JSON.stringify(response.data.user));
 
-      return response.data;
+        return response.data;
+      }
+
+      throw new Error(response.error?.message || 'Login failed');
+    } catch (error: any) {
+      // 处理401错误（用户名或密码错误）
+      if (error.response?.status === 401) {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+
+      // 处理其他错误
+      if (error.response?.data?.error?.message) {
+        throw new Error(error.response.data.error.message);
+      }
+
+      throw new Error(error.message || 'Login failed');
     }
-
-    throw new Error(response.error?.message || 'Login failed');
   }
 
   /**

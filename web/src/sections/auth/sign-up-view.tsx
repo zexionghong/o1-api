@@ -17,6 +17,7 @@ import { useRouter } from 'src/routes/hooks';
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
+import { AuthLanguageSwitcher } from 'src/components/language-switcher';
 
 // ----------------------------------------------------------------------
 
@@ -62,32 +63,32 @@ export function SignUpView() {
     const errors: Record<string, string> = {};
 
     if (!formData.username.trim()) {
-      errors.username = 'Username is required';
+      errors.username = t('auth.username_required');
     } else if (formData.username.length < 3) {
-      errors.username = 'Username must be at least 3 characters';
+      errors.username = t('auth.username_min_length');
     }
 
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = t('auth.email_required');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
+      errors.email = t('auth.email_invalid');
     }
 
     if (!formData.password) {
-      errors.password = 'Password is required';
+      errors.password = t('auth.password_required');
     } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+      errors.password = t('auth.password_min_length');
     }
 
     if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
+      errors.confirmPassword = t('auth.confirm_password_required');
     } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
+      errors.confirmPassword = t('auth.passwords_not_match');
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [formData]);
+  }, [formData, t]);
 
   const handleSignUp = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -120,10 +121,10 @@ export function SignUpView() {
     return (
       <Box sx={{ textAlign: 'center', p: 3 }}>
         <Typography variant="h4" sx={{ mb: 2 }}>
-          Registration Successful!
+          {t('auth.registration_successful')}
         </Typography>
         <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
-          Your account has been created successfully. You can now sign in with your credentials.
+          {t('auth.account_created')}
         </Typography>
         <Button
           variant="contained"
@@ -269,6 +270,17 @@ export function SignUpView() {
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* 语言切换器 */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          mb: 3,
+        }}
+      >
+        <AuthLanguageSwitcher variant="icon" />
+      </Box>
+
       <Typography variant="h3" sx={{ mb: 2 }}>
         {t('auth.register')}
       </Typography>
@@ -288,7 +300,7 @@ export function SignUpView() {
 
       <Divider sx={{ my: 3 }}>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          OR
+          {t('auth.or')}
         </Typography>
       </Divider>
 
@@ -300,7 +312,7 @@ export function SignUpView() {
         onClick={handleGoToSignIn}
         startIcon={<Iconify icon="eva:arrow-ios-upward-fill" />}
       >
-        Back to Sign In
+        {t('auth.back_to_signin')}
       </Button>
     </Box>
   );

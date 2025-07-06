@@ -1,142 +1,83 @@
-import type { CardProps } from '@mui/material/Card';
-import type { PaletteColorKey } from 'src/theme/core';
-import type { ChartOptions } from 'src/components/chart';
-
-import { varAlpha } from 'minimal-shared/utils';
-
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import { useTheme } from '@mui/material/styles';
-
-import { fNumber, fPercent, fShortenNumber } from 'src/utils/format-number';
-
-import { Iconify } from 'src/components/iconify';
-import { SvgColor } from 'src/components/svg-color';
-import { Chart, useChart } from 'src/components/chart';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
 
 // ----------------------------------------------------------------------
 
-type Props = CardProps & {
+type Props = {
   title: string;
   total: number;
-  percent: number;
-  color?: PaletteColorKey;
-  icon: React.ReactNode;
-  chart: {
-    series: number[];
+  percent?: number;
+  color?: 'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error';
+  icon?: React.ReactNode;
+  chart?: {
     categories: string[];
-    options?: ChartOptions;
+    series: number[];
   };
 };
 
 export function AnalyticsWidgetSummary({
-  sx,
-  icon,
   title,
   total,
-  chart,
-  percent,
+  percent = 0,
   color = 'primary',
-  ...other
+  icon,
+  chart,
 }: Props) {
   const theme = useTheme();
 
-  const chartColors = [theme.palette[color].dark];
-
-  const chartOptions = useChart({
-    chart: { sparkline: { enabled: true } },
-    colors: chartColors,
-    xaxis: { categories: chart.categories },
-    grid: {
-      padding: {
-        top: 6,
-        left: 6,
-        right: 6,
-        bottom: 6,
-      },
-    },
-    tooltip: {
-      y: { formatter: (value: number) => fNumber(value), title: { formatter: () => '' } },
-    },
-    markers: {
-      strokeWidth: 0,
-    },
-    ...chart.options,
-  });
-
-  const renderTrending = () => (
-    <Box
-      sx={{
-        top: 16,
-        gap: 0.5,
-        right: 16,
-        display: 'flex',
-        position: 'absolute',
-        alignItems: 'center',
-      }}
-    >
-      <Iconify width={20} icon={percent < 0 ? 'eva:trending-down-fill' : 'eva:trending-up-fill'} />
-      <Box component="span" sx={{ typography: 'subtitle2' }}>
-        {percent > 0 && '+'}
-        {fPercent(percent)}
-      </Box>
-    </Box>
-  );
-
   return (
     <Card
-      sx={[
-        () => ({
-          p: 3,
-          boxShadow: 'none',
-          position: 'relative',
-          color: `${color}.darker`,
-          backgroundColor: 'common.white',
-          backgroundImage: `linear-gradient(135deg, ${varAlpha(theme.vars.palette[color].lighterChannel, 0.48)}, ${varAlpha(theme.vars.palette[color].lightChannel, 0.48)})`,
-        }),
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-      {...other}
+      sx={{
+        py: 3,
+        px: 3,
+        borderRadius: 2,
+        bgcolor: alpha(theme.palette[color].main, 0.08),
+        border: `1px solid ${alpha(theme.palette[color].main, 0.24)}`,
+      }}
     >
-      <Box sx={{ width: 48, height: 48, mb: 3 }}>{icon}</Box>
-
-      {renderTrending()}
-
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'flex-end',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <Box sx={{ flexGrow: 1, minWidth: 112 }}>
-          <Box sx={{ mb: 1, typography: 'subtitle2' }}>{title}</Box>
-
-          <Box sx={{ typography: 'h4' }}>{fShortenNumber(total)}</Box>
+      <CardContent sx={{ p: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          {icon && (
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 1.5,
+                bgcolor: alpha(theme.palette[color].main, 0.16),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mr: 2,
+              }}
+            >
+              {icon}
+            </Box>
+          )}
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h3" sx={{ color: theme.palette[color].main }}>
+              {typeof total === 'number' ? total.toLocaleString() : total}
+            </Typography>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+              {title}
+            </Typography>
+          </Box>
         </Box>
 
-        <Chart
-          type="line"
-          series={[{ data: chart.series }]}
-          options={chartOptions}
-          sx={{ width: 84, height: 56 }}
-        />
-      </Box>
-
-      <SvgColor
-        src="/assets/background/shape-square.svg"
-        sx={{
-          top: 0,
-          left: -20,
-          width: 240,
-          zIndex: -1,
-          height: 240,
-          opacity: 0.24,
-          position: 'absolute',
-          color: `${color}.main`,
-        }}
-      />
+        {percent !== 0 && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: percent > 0 ? 'success.main' : 'error.main',
+            }}
+          >
+            {percent > 0 ? '+' : ''}
+            {percent}%
+          </Typography>
+        )}
+      </CardContent>
     </Card>
   );
 }

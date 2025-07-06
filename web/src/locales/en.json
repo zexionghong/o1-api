@@ -45,12 +45,24 @@
     "registration_success": "Registration successful",
     "no_account": "Don't have an account?",
     "get_started": "Get started",
-    "have_account": "Already have an account?"
+    "have_account": "Already have an account?",
+    "or": "OR",
+    "registration_successful": "Registration Successful!",
+    "account_created": "Your account has been created successfully. You can now sign in with your credentials.",
+    "back_to_signin": "Back to Sign In",
+    "username_required": "Username is required",
+    "username_min_length": "Username must be at least 3 characters",
+    "email_required": "Email is required",
+    "email_invalid": "Please enter a valid email address",
+    "password_required": "Password is required",
+    "password_min_length": "Password must be at least 6 characters",
+    "confirm_password_required": "Please confirm your password",
+    "passwords_not_match": "Passwords do not match",
+    "invalid_credentials_error": "Invalid username or password"
   },
   "navigation": {
     "dashboard": "Dashboard",
     "api_keys": "API Keys",
-    "users": "Users",
     "settings": "Settings",
     "profile": "Profile",
     "documentation": "Documentation",
@@ -133,19 +145,7 @@
     "refund": "Refund",
     "adjustment": "Adjustment"
   },
-  "users": {
-    "title": "Users",
-    "username": "Username",
-    "email": "Email",
-    "full_name": "Full Name",
-    "balance": "Balance",
-    "status": "Status",
-    "created_at": "Created At",
-    "active": "Active",
-    "inactive": "Inactive",
-    "suspended": "Suspended",
-    "no_users": "No users found"
-  },
+
   "settings": {
     "title": "Settings",
     "general": "General",

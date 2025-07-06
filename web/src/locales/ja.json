@@ -45,12 +45,24 @@
     "registration_success": "登録が完了しました",
     "no_account": "アカウントをお持ちでないですか？",
     "get_started": "今すぐ始める",
-    "have_account": "既にアカウントをお持ちですか？"
+    "have_account": "既にアカウントをお持ちですか？",
+    "or": "または",
+    "registration_successful": "登録完了！",
+    "account_created": "アカウントが正常に作成されました。認証情報でサインインできます。",
+    "back_to_signin": "サインインに戻る",
+    "username_required": "ユーザー名は必須です",
+    "username_min_length": "ユーザー名は3文字以上である必要があります",
+    "email_required": "メールアドレスは必須です",
+    "email_invalid": "有効なメールアドレスを入力してください",
+    "password_required": "パスワードは必須です",
+    "password_min_length": "パスワードは6文字以上である必要があります",
+    "confirm_password_required": "パスワードを確認してください",
+    "passwords_not_match": "パスワードが一致しません",
+    "invalid_credentials_error": "ユーザー名またはパスワードが間違っています"
   },
   "navigation": {
     "dashboard": "ダッシュボード",
     "api_keys": "APIキー",
-    "users": "ユーザー管理",
     "settings": "設定",
     "profile": "プロフィール",
     "documentation": "ドキュメント",
@@ -133,19 +145,7 @@
     "refund": "返金",
     "adjustment": "調整"
   },
-  "users": {
-    "title": "ユーザー管理",
-    "username": "ユーザー名",
-    "email": "メールアドレス",
-    "full_name": "フルネーム",
-    "balance": "残高",
-    "status": "ステータス",
-    "created_at": "作成日時",
-    "active": "アクティブ",
-    "inactive": "非アクティブ",
-    "suspended": "停止中",
-    "no_users": "ユーザーが見つかりません"
-  },
+
   "settings": {
     "title": "設定",
     "general": "一般",

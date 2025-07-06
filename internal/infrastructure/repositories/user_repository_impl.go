@@ -207,6 +207,40 @@ func (r *userRepositoryImpl) UpdateBalance(ctx context.Context, userID int64, ba
 	return nil
 }
 
+// UpdateProfile 更新用户资料（不包括密码）
+func (r *userRepositoryImpl) UpdateProfile(ctx context.Context, user *entities.User) error {
+	query := `
+		UPDATE users
+		SET username = ?, email = ?, full_name = ?, status = ?, updated_at = ?
+		WHERE id = ?
+	`
+
+	user.UpdatedAt = time.Now()
+
+	result, err := r.db.ExecContext(ctx, query,
+		user.Username,
+		user.Email,
+		user.FullName,
+		user.Status,
+		user.UpdatedAt,
+		user.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user profile: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return entities.ErrUserNotFound
+	}
+
+	return nil
+}
+
 // Delete 删除用户（软删除）
 func (r *userRepositoryImpl) Delete(ctx context.Context, id int64) error {
 	query := `

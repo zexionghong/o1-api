@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import React, { useEffect, useContext, useReducer, createContext } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import AuthService from '../services/auth';
 
@@ -95,6 +96,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // 认证提供者组件
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // 检查认证状态
@@ -130,7 +132,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await AuthService.login(credentials);
       dispatch({ type: 'AUTH_SUCCESS', payload: response.user });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      let errorMessage = 'Login failed';
+
+      if (error instanceof Error) {
+        // 处理特殊的错误码
+        if (error.message === 'INVALID_CREDENTIALS') {
+          errorMessage = t('auth.invalid_credentials_error');
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
       throw error;
     }

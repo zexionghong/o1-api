@@ -17,37 +17,34 @@ import { useRouter } from 'src/routes/hooks';
 import { useAuth } from 'src/contexts/auth-context';
 
 import { Iconify } from 'src/components/iconify';
+import { AuthLanguageSwitcher } from 'src/components/language-switcher';
 
 // ----------------------------------------------------------------------
 
 export function SignInView() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { state, login, clearError } = useAuth();
-
+  const { login, state, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
 
-  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
+  const handleInputChange = useCallback((field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [field]: event.target.value,
     }));
-
-    // 清除错误信息
     if (state.error) {
       clearError();
     }
   }, [state.error, clearError]);
 
-  const handleSignIn = useCallback(async (event: React.FormEvent) => {
+  const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
-
-    if (!formData.username || !formData.password) {
+    
+    if (!formData.username.trim() || !formData.password.trim()) {
       return;
     }
 
@@ -56,76 +53,57 @@ export function SignInView() {
         username: formData.username,
         password: formData.password,
       });
-
-      // 登录成功，跳转到首页
       router.push('/');
     } catch (error) {
-      // 错误已经在context中处理了
-      console.error('Login failed:', error);
+      // Error is handled by the auth context
     }
   }, [formData, login, router]);
 
   const renderForm = (
-    <Box
-      component="form"
-      onSubmit={handleSignIn}
-      sx={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        flexDirection: 'column',
-      }}
-    >
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <TextField
+          fullWidth
+          name="username"
+          label={t('auth.username')}
+          value={formData.username}
+          onChange={handleInputChange('username')}
+          slotProps={{
+            inputLabel: { shrink: true },
+          }}
+        />
+
+        <Link variant="body2" color="inherit" sx={{ alignSelf: 'flex-end' }}>
+          {t('auth.forgot_password')}
+        </Link>
+
+        <TextField
+          fullWidth
+          name="password"
+          label={t('auth.password')}
+          type={showPassword ? 'text' : 'password'}
+          value={formData.password}
+          onChange={handleInputChange('password')}
+          slotProps={{
+            inputLabel: { shrink: true },
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                    <Iconify icon={showPassword ? 'solar:eye-bold' : 'solar:eye-closed-bold'} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      </Box>
+
       {state.error && (
-        <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
+        <Alert severity="error" sx={{ mt: 2 }}>
           {state.error}
         </Alert>
       )}
-
-      <TextField
-        fullWidth
-        name="username"
-        label={t('auth.username')}
-        value={formData.username}
-        onChange={handleInputChange}
-        disabled={state.isLoading}
-        required
-        sx={{ mb: 3 }}
-        slotProps={{
-          inputLabel: { shrink: true },
-        }}
-      />
-
-      <Link variant="body2" color="inherit" sx={{ mb: 1.5 }}>
-        {t('auth.forgot_password')}
-      </Link>
-
-      <TextField
-        fullWidth
-        name="password"
-        label={t('auth.password')}
-        value={formData.password}
-        onChange={handleInputChange}
-        disabled={state.isLoading}
-        required
-        type={showPassword ? 'text' : 'password'}
-        slotProps={{
-          inputLabel: { shrink: true },
-          input: {
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                  disabled={state.isLoading}
-                >
-                  <Iconify icon={showPassword ? 'solar:eye-bold' : 'solar:eye-closed-bold'} />
-                </IconButton>
-              </InputAdornment>
-            ),
-          },
-        }}
-        sx={{ mb: 3 }}
-      />
 
       <Button
         fullWidth
@@ -133,8 +111,9 @@ export function SignInView() {
         type="submit"
         color="inherit"
         variant="contained"
-        disabled={state.isLoading || !formData.username || !formData.password}
+        disabled={state.isLoading}
         startIcon={state.isLoading ? <CircularProgress size={20} /> : null}
+        sx={{ mt: 3 }}
       >
         {state.isLoading ? t('common.loading') : t('auth.login')}
       </Button>
@@ -143,6 +122,17 @@ export function SignInView() {
 
   return (
     <>
+      {/* 语言切换器 */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          mb: 3,
+        }}
+      >
+        <AuthLanguageSwitcher variant="icon" />
+      </Box>
+
       <Box
         sx={{
           gap: 1.5,
@@ -159,7 +149,7 @@ export function SignInView() {
             color: 'text.secondary',
           }}
         >
-          Don’t have an account?
+          {t('auth.no_account')}{' '}
           <Link
             variant="subtitle2"
             sx={{ ml: 0.5, cursor: 'pointer' }}
@@ -173,28 +163,11 @@ export function SignInView() {
       <Divider sx={{ my: 3, '&::before, &::after': { borderTopStyle: 'dashed' } }}>
         <Typography
           variant="overline"
-          sx={{ color: 'text.secondary', fontWeight: 'fontWeightMedium' }}
+          sx={{ color: 'text.disabled', fontWeight: 'fontWeightMedium' }}
         >
-          OR
+          {t('auth.or')}
         </Typography>
       </Divider>
-      <Box
-        sx={{
-          gap: 1,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        <IconButton color="inherit">
-          <Iconify width={22} icon="socials:google" />
-        </IconButton>
-        <IconButton color="inherit">
-          <Iconify width={22} icon="socials:github" />
-        </IconButton>
-        <IconButton color="inherit">
-          <Iconify width={22} icon="socials:twitter" />
-        </IconButton>
-      </Box>
     </>
   );
 }
