@@ -8,7 +8,7 @@ import (
 // CreateAPIKeyRequest 创建API密钥请求
 type CreateAPIKeyRequest struct {
 	UserID      int64                       `json:"user_id" validate:"required"`
-	Name        string                      `json:"name" validate:"required,min=1,max=100"`
+	Name        *string                     `json:"name,omitempty" validate:"omitempty,min=1,max=100"`
 	Permissions *entities.APIKeyPermissions `json:"permissions,omitempty"`
 	ExpiresAt   *time.Time                  `json:"expires_at,omitempty"`
 }
@@ -25,7 +25,7 @@ type UpdateAPIKeyRequest struct {
 type APIKeyResponse struct {
 	ID          int64                       `json:"id"`
 	UserID      int64                       `json:"user_id"`
-	Key         string                      `json:"key"` // 完整的API密钥
+	Key         string                      `json:"key,omitempty"` // 完整的API密钥，只在创建时返回
 	KeyPrefix   string                      `json:"key_prefix"`
 	Name        *string                     `json:"name,omitempty"`
 	Status      entities.APIKeyStatus       `json:"status"`
@@ -48,6 +48,15 @@ type APIKeyListResponse struct {
 	Page       int               `json:"page"`
 	PageSize   int               `json:"page_size"`
 	TotalPages int               `json:"total_pages"`
+}
+
+// PaginatedResponse 分页响应
+type PaginatedResponse struct {
+	Data       interface{} `json:"data"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"page_size"`
+	TotalPages int         `json:"total_pages"`
 }
 
 // FromEntity 从实体转换

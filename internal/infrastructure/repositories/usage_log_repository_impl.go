@@ -209,9 +209,186 @@ func (r *usageLogRepositoryImpl) GetByUserID(ctx context.Context, userID int64, 
 
 // GetByAPIKeyID 根据API密钥ID获取使用日志列表
 func (r *usageLogRepositoryImpl) GetByAPIKeyID(ctx context.Context, apiKeyID int64, offset, limit int) ([]*entities.UsageLog, error) {
-	// 实现类似GetByUserID的逻辑
-	// TODO: 完整实现
-	return nil, nil
+	query := `
+		SELECT id, user_id, api_key_id, provider_id, model_id, request_id,
+			   method, endpoint, input_tokens, output_tokens, total_tokens,
+			   request_size, response_size, duration_ms, status_code,
+			   error_message, cost, created_at
+		FROM usage_logs
+		WHERE api_key_id = ?
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, apiKeyID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage logs by api key id: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []*entities.UsageLog
+	for rows.Next() {
+		log := &entities.UsageLog{}
+		err := rows.Scan(
+			&log.ID,
+			&log.UserID,
+			&log.APIKeyID,
+			&log.ProviderID,
+			&log.ModelID,
+			&log.RequestID,
+			&log.Method,
+			&log.Endpoint,
+			&log.InputTokens,
+			&log.OutputTokens,
+			&log.TotalTokens,
+			&log.RequestSize,
+			&log.ResponseSize,
+			&log.DurationMs,
+			&log.StatusCode,
+			&log.ErrorMessage,
+			&log.Cost,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan usage log: %w", err)
+		}
+		logs = append(logs, log)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate usage logs: %w", err)
+	}
+
+	return logs, nil
+}
+
+// GetByAPIKeyIDAndDateRange 根据API密钥ID和日期范围获取使用日志列表
+func (r *usageLogRepositoryImpl) GetByAPIKeyIDAndDateRange(ctx context.Context, apiKeyID int64, start, end *time.Time, offset, limit int) ([]*entities.UsageLog, error) {
+	var query string
+	var args []interface{}
+
+	if start != nil && end != nil {
+		query = `
+			SELECT id, user_id, api_key_id, provider_id, model_id, request_id,
+				   method, endpoint, input_tokens, output_tokens, total_tokens,
+				   request_size, response_size, duration_ms, status_code,
+				   error_message, cost, created_at
+			FROM usage_logs
+			WHERE api_key_id = ? AND created_at >= ? AND created_at <= ?
+			ORDER BY created_at DESC
+			LIMIT ? OFFSET ?
+		`
+		args = []interface{}{apiKeyID, *start, *end, limit, offset}
+	} else if start != nil {
+		query = `
+			SELECT id, user_id, api_key_id, provider_id, model_id, request_id,
+				   method, endpoint, input_tokens, output_tokens, total_tokens,
+				   request_size, response_size, duration_ms, status_code,
+				   error_message, cost, created_at
+			FROM usage_logs
+			WHERE api_key_id = ? AND created_at >= ?
+			ORDER BY created_at DESC
+			LIMIT ? OFFSET ?
+		`
+		args = []interface{}{apiKeyID, *start, limit, offset}
+	} else if end != nil {
+		query = `
+			SELECT id, user_id, api_key_id, provider_id, model_id, request_id,
+				   method, endpoint, input_tokens, output_tokens, total_tokens,
+				   request_size, response_size, duration_ms, status_code,
+				   error_message, cost, created_at
+			FROM usage_logs
+			WHERE api_key_id = ? AND created_at <= ?
+			ORDER BY created_at DESC
+			LIMIT ? OFFSET ?
+		`
+		args = []interface{}{apiKeyID, *end, limit, offset}
+	} else {
+		// 没有日期过滤，直接调用GetByAPIKeyID
+		return r.GetByAPIKeyID(ctx, apiKeyID, offset, limit)
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage logs by api key id and date range: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []*entities.UsageLog
+	for rows.Next() {
+		log := &entities.UsageLog{}
+		err := rows.Scan(
+			&log.ID,
+			&log.UserID,
+			&log.APIKeyID,
+			&log.ProviderID,
+			&log.ModelID,
+			&log.RequestID,
+			&log.Method,
+			&log.Endpoint,
+			&log.InputTokens,
+			&log.OutputTokens,
+			&log.TotalTokens,
+			&log.RequestSize,
+			&log.ResponseSize,
+			&log.DurationMs,
+			&log.StatusCode,
+			&log.ErrorMessage,
+			&log.Cost,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan usage log: %w", err)
+		}
+		logs = append(logs, log)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate usage logs: %w", err)
+	}
+
+	return logs, nil
+}
+
+// CountByAPIKeyID 根据API密钥ID获取使用日志总数
+func (r *usageLogRepositoryImpl) CountByAPIKeyID(ctx context.Context, apiKeyID int64) (int64, error) {
+	query := `SELECT COUNT(*) FROM usage_logs WHERE api_key_id = ?`
+
+	var count int64
+	err := r.db.QueryRowContext(ctx, query, apiKeyID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count usage logs by api key id: %w", err)
+	}
+
+	return count, nil
+}
+
+// CountByAPIKeyIDAndDateRange 根据API密钥ID和日期范围获取使用日志总数
+func (r *usageLogRepositoryImpl) CountByAPIKeyIDAndDateRange(ctx context.Context, apiKeyID int64, start, end *time.Time) (int64, error) {
+	var query string
+	var args []interface{}
+
+	if start != nil && end != nil {
+		query = `SELECT COUNT(*) FROM usage_logs WHERE api_key_id = ? AND created_at >= ? AND created_at <= ?`
+		args = []interface{}{apiKeyID, *start, *end}
+	} else if start != nil {
+		query = `SELECT COUNT(*) FROM usage_logs WHERE api_key_id = ? AND created_at >= ?`
+		args = []interface{}{apiKeyID, *start}
+	} else if end != nil {
+		query = `SELECT COUNT(*) FROM usage_logs WHERE api_key_id = ? AND created_at <= ?`
+		args = []interface{}{apiKeyID, *end}
+	} else {
+		// 没有日期过滤，直接调用CountByAPIKeyID
+		return r.CountByAPIKeyID(ctx, apiKeyID)
+	}
+
+	var count int64
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count usage logs by api key id and date range: %w", err)
+	}
+
+	return count, nil
 }
 
 // Update 更新使用日志
@@ -240,8 +417,57 @@ func (r *usageLogRepositoryImpl) Count(ctx context.Context) (int64, error) {
 
 // GetByDateRange 根据日期范围获取使用日志
 func (r *usageLogRepositoryImpl) GetByDateRange(ctx context.Context, start, end time.Time, offset, limit int) ([]*entities.UsageLog, error) {
-	// TODO: 实现根据日期范围获取使用日志
-	return nil, nil
+	query := `
+		SELECT id, user_id, api_key_id, provider_id, model_id, request_id,
+			   method, endpoint, input_tokens, output_tokens, total_tokens,
+			   request_size, response_size, duration_ms, status_code,
+			   error_message, cost, created_at
+		FROM usage_logs
+		WHERE created_at >= ? AND created_at <= ?
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, start, end, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get usage logs by date range: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []*entities.UsageLog
+	for rows.Next() {
+		log := &entities.UsageLog{}
+		err := rows.Scan(
+			&log.ID,
+			&log.UserID,
+			&log.APIKeyID,
+			&log.ProviderID,
+			&log.ModelID,
+			&log.RequestID,
+			&log.Method,
+			&log.Endpoint,
+			&log.InputTokens,
+			&log.OutputTokens,
+			&log.TotalTokens,
+			&log.RequestSize,
+			&log.ResponseSize,
+			&log.DurationMs,
+			&log.StatusCode,
+			&log.ErrorMessage,
+			&log.Cost,
+			&log.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan usage log: %w", err)
+		}
+		logs = append(logs, log)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate usage logs: %w", err)
+	}
+
+	return logs, nil
 }
 
 // GetSuccessfulLogs 获取成功的使用日志

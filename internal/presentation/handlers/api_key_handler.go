@@ -6,6 +6,7 @@ import (
 
 	"ai-api-gateway/internal/application/dto"
 	"ai-api-gateway/internal/application/services"
+	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/infrastructure/logger"
 
 	"github.com/gin-gonic/gin"
@@ -13,15 +14,21 @@ import (
 
 // APIKeyHandler API密钥处理器
 type APIKeyHandler struct {
-	apiKeyService services.APIKeyService
-	logger        logger.Logger
+	apiKeyService     services.APIKeyService
+	usageLogRepo      repositories.UsageLogRepository
+	billingRecordRepo repositories.BillingRecordRepository
+	modelRepo         repositories.ModelRepository
+	logger            logger.Logger
 }
 
 // NewAPIKeyHandler 创建API密钥处理器
-func NewAPIKeyHandler(apiKeyService services.APIKeyService, logger logger.Logger) *APIKeyHandler {
+func NewAPIKeyHandler(apiKeyService services.APIKeyService, usageLogRepo repositories.UsageLogRepository, billingRecordRepo repositories.BillingRecordRepository, modelRepo repositories.ModelRepository, logger logger.Logger) *APIKeyHandler {
 	return &APIKeyHandler{
-		apiKeyService: apiKeyService,
-		logger:        logger,
+		apiKeyService:     apiKeyService,
+		usageLogRepo:      usageLogRepo,
+		billingRecordRepo: billingRecordRepo,
+		modelRepo:         modelRepo,
+		logger:            logger,
 	}
 }
 
@@ -269,4 +276,232 @@ func (h *APIKeyHandler) GetUserAPIKeys(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.SuccessResponse(apiKeys, "User API keys retrieved successfully"))
+}
+
+// GetAPIKeyUsageLogs 获取API密钥使用日志
+func (h *APIKeyHandler) GetAPIKeyUsageLogs(c *gin.Context) {
+	idStr := c.Param("id")
+	apiKeyID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
+			"INVALID_API_KEY_ID",
+			"Invalid API key ID",
+			nil,
+		))
+		return
+	}
+
+	// 绑定查询参数
+	var req dto.UsageLogListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
+			"INVALID_QUERY_PARAMS",
+			"Invalid query parameters",
+			map[string]interface{}{
+				"details": err.Error(),
+			},
+		))
+		return
+	}
+
+	req.APIKeyID = apiKeyID
+
+	// 验证参数
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 || req.PageSize > 100 {
+		req.PageSize = 10
+	}
+
+	h.logger.WithFields(map[string]interface{}{
+		"api_key_id": apiKeyID,
+		"start_date": req.StartDate,
+		"end_date":   req.EndDate,
+		"page":       req.Page,
+		"page_size":  req.PageSize,
+	}).Debug("Querying usage logs with date range")
+
+	// 从数据库获取使用日志
+	offset := (req.Page - 1) * req.PageSize
+	usageLogEntities, err := h.usageLogRepo.GetByAPIKeyIDAndDateRange(c.Request.Context(), apiKeyID, req.StartDate, req.EndDate, offset, req.PageSize)
+	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"error":      err.Error(),
+			"api_key_id": apiKeyID,
+		}).Error("Failed to get usage logs from database")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+			"DATABASE_ERROR",
+			"Failed to retrieve usage logs",
+			nil,
+		))
+		return
+	}
+
+	// 获取总数
+	total, err := h.usageLogRepo.CountByAPIKeyIDAndDateRange(c.Request.Context(), apiKeyID, req.StartDate, req.EndDate)
+	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"error":      err.Error(),
+			"api_key_id": apiKeyID,
+		}).Error("Failed to count usage logs from database")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+			"DATABASE_ERROR",
+			"Failed to count usage logs",
+			nil,
+		))
+		return
+	}
+
+	// 转换为响应DTO
+	usageLogs := make([]dto.UsageLogResponse, len(usageLogEntities))
+	for i, entity := range usageLogEntities {
+		// 获取模型名称
+		modelName := "unknown"
+		if model, err := h.modelRepo.GetByID(c.Request.Context(), entity.ModelID); err == nil {
+			modelName = model.GetDisplayName()
+		}
+
+		usageLogs[i] = dto.UsageLogResponse{
+			ID:          entity.ID,
+			APIKeyID:    entity.APIKeyID,
+			UserID:      entity.UserID,
+			Model:       modelName,
+			TokensUsed:  entity.TotalTokens,
+			Cost:        entity.Cost,
+			RequestType: entity.Endpoint, // 暂时使用endpoint作为request_type
+			Status:      getStatusFromCode(entity.StatusCode),
+			RequestID:   entity.RequestID,
+			IPAddress:   "", // TODO: 如果需要可以添加到entity
+			UserAgent:   "", // TODO: 如果需要可以添加到entity
+			Timestamp:   entity.CreatedAt,
+		}
+	}
+
+	response := dto.PaginatedResponse{
+		Data:       usageLogs,
+		Total:      total,
+		Page:       req.Page,
+		PageSize:   req.PageSize,
+		TotalPages: int((total + int64(req.PageSize) - 1) / int64(req.PageSize)),
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse(response, "Usage logs retrieved successfully"))
+}
+
+// getStatusFromCode 根据HTTP状态码获取状态字符串
+func getStatusFromCode(statusCode int) string {
+	if statusCode >= 200 && statusCode < 300 {
+		return "success"
+	}
+	return "error"
+}
+
+// getStringValue 获取字符串指针的值，如果为nil则返回空字符串
+func getStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// GetAPIKeyBillingRecords 获取API密钥扣费记录
+func (h *APIKeyHandler) GetAPIKeyBillingRecords(c *gin.Context) {
+	idStr := c.Param("id")
+	apiKeyID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
+			"INVALID_API_KEY_ID",
+			"Invalid API key ID",
+			nil,
+		))
+		return
+	}
+
+	// 绑定查询参数
+	var req dto.BillingRecordListRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
+			"INVALID_QUERY_PARAMS",
+			"Invalid query parameters",
+			map[string]interface{}{
+				"details": err.Error(),
+			},
+		))
+		return
+	}
+
+	req.APIKeyID = apiKeyID
+
+	// 验证参数
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 || req.PageSize > 100 {
+		req.PageSize = 10
+	}
+
+	h.logger.WithFields(map[string]interface{}{
+		"api_key_id": apiKeyID,
+		"start_date": req.StartDate,
+		"end_date":   req.EndDate,
+		"page":       req.Page,
+		"page_size":  req.PageSize,
+	}).Debug("Querying billing records with date range")
+
+	// 从数据库获取扣费记录
+	offset := (req.Page - 1) * req.PageSize
+	billingRecordEntities, err := h.billingRecordRepo.GetByAPIKeyIDAndDateRange(c.Request.Context(), apiKeyID, req.StartDate, req.EndDate, offset, req.PageSize)
+	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"error":      err.Error(),
+			"api_key_id": apiKeyID,
+		}).Error("Failed to get billing records from database")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+			"DATABASE_ERROR",
+			"Failed to retrieve billing records",
+			nil,
+		))
+		return
+	}
+
+	// 获取总数
+	total, err := h.billingRecordRepo.CountByAPIKeyIDAndDateRange(c.Request.Context(), apiKeyID, req.StartDate, req.EndDate)
+	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"error":      err.Error(),
+			"api_key_id": apiKeyID,
+		}).Error("Failed to count billing records from database")
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+			"DATABASE_ERROR",
+			"Failed to count billing records",
+			nil,
+		))
+		return
+	}
+
+	// 转换为响应DTO
+	billingRecords := make([]dto.BillingRecordResponse, len(billingRecordEntities))
+	for i, entity := range billingRecordEntities {
+		billingRecords[i] = dto.BillingRecordResponse{
+			ID:              entity.ID,
+			UserID:          entity.UserID,
+			Amount:          entity.Amount,
+			Description:     getStringValue(entity.Description),
+			TransactionType: string(entity.BillingType),
+			BalanceBefore:   0.0, // TODO: 需要计算或存储余额变化
+			BalanceAfter:    0.0, // TODO: 需要计算或存储余额变化
+			Timestamp:       entity.CreatedAt,
+		}
+	}
+
+	response := dto.PaginatedResponse{
+		Data:       billingRecords,
+		Total:      total,
+		Page:       req.Page,
+		PageSize:   req.PageSize,
+		TotalPages: int((total + int64(req.PageSize) - 1) / int64(req.PageSize)),
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse(response, "Billing records retrieved successfully"))
 }

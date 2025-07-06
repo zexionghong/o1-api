@@ -7,6 +7,7 @@ import (
 	"ai-api-gateway/internal/application/dto"
 	"ai-api-gateway/internal/application/services"
 	"ai-api-gateway/internal/domain/entities"
+	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/infrastructure/logger"
 
 	"github.com/gin-gonic/gin"
@@ -17,15 +18,17 @@ type AuthMiddleware struct {
 	apiKeyService services.APIKeyService
 	jwtService    services.JWTService
 	userService   services.UserService
+	userRepo      repositories.UserRepository
 	logger        logger.Logger
 }
 
 // NewAuthMiddleware 创建认证中间件
-func NewAuthMiddleware(apiKeyService services.APIKeyService, jwtService services.JWTService, userService services.UserService, logger logger.Logger) *AuthMiddleware {
+func NewAuthMiddleware(apiKeyService services.APIKeyService, jwtService services.JWTService, userService services.UserService, userRepo repositories.UserRepository, logger logger.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		apiKeyService: apiKeyService,
 		jwtService:    jwtService,
 		userService:   userService,
+		userRepo:      userRepo,
 		logger:        logger,
 	}
 }
@@ -185,8 +188,29 @@ func (m *AuthMiddleware) tryJWTAuth(c *gin.Context) bool {
 		return false
 	}
 
+	// 获取用户信息并检查余额
+	user, err := m.userRepo.GetByID(c.Request.Context(), claims.UserID)
+	if err != nil {
+		m.logger.WithFields(map[string]interface{}{
+			"user_id": claims.UserID,
+			"error":   err.Error(),
+		}).Debug("Failed to get user for JWT authentication")
+		return false
+	}
+
+	// 检查用户是否可以发起请求（包括余额检查）
+	if !user.CanMakeRequest() {
+		m.logger.WithFields(map[string]interface{}{
+			"user_id": user.ID,
+			"balance": user.Balance,
+			"status":  user.Status,
+		}).Debug("User cannot make request - insufficient balance or inactive status")
+		return false
+	}
+
 	// 将认证信息存储到上下文中
 	c.Set("auth_type", "jwt")
+	c.Set("user", user)
 	c.Set("user_id", claims.UserID)
 	c.Set("username", claims.Username)
 	c.Set("jwt_claims", claims)
@@ -194,6 +218,7 @@ func (m *AuthMiddleware) tryJWTAuth(c *gin.Context) bool {
 	m.logger.WithFields(map[string]interface{}{
 		"user_id":  claims.UserID,
 		"username": claims.Username,
+		"balance":  user.Balance,
 	}).Debug("JWT authentication successful")
 
 	return true
@@ -217,6 +242,17 @@ func (m *AuthMiddleware) tryAPIKeyAuth(c *gin.Context) bool {
 		return false
 	}
 
+	// 检查用户是否可以发起请求（包括余额检查）
+	if !user.CanMakeRequest() {
+		m.logger.WithFields(map[string]interface{}{
+			"user_id":        user.ID,
+			"balance":        user.Balance,
+			"status":         user.Status,
+			"api_key_prefix": apiKeyEntity.KeyPrefix,
+		}).Debug("User cannot make request - insufficient balance or inactive status")
+		return false
+	}
+
 	// 将认证信息存储到上下文中
 	c.Set("auth_type", "api_key")
 	c.Set("api_key", apiKeyEntity)
@@ -228,6 +264,7 @@ func (m *AuthMiddleware) tryAPIKeyAuth(c *gin.Context) bool {
 		"user_id":        user.ID,
 		"api_key_id":     apiKeyEntity.ID,
 		"api_key_prefix": apiKeyEntity.KeyPrefix,
+		"balance":        user.Balance,
 	}).Debug("API key authentication successful")
 
 	return true

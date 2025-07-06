@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
 
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
-import Grid from '@mui/material/Grid';
 import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Table from '@mui/material/Table';
-import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import Typography from '@mui/material/Typography';
-import CardContent from '@mui/material/CardContent';
 import TableContainer from '@mui/material/TableContainer';
-import CircularProgress from '@mui/material/CircularProgress';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+
+import { useRouter } from 'src/routes/hooks';
 
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -55,6 +58,7 @@ interface UsageRecord {
 
 export function RealDashboardView() {
   const { state } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -226,9 +230,18 @@ export function RealDashboardView() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                API Keys
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  API Keys
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => router.push('/api-keys')}
+                >
+                  Manage Keys
+                </Button>
+              </Box>
               {apiKeys.length > 0 ? (
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
@@ -263,9 +276,17 @@ export function RealDashboardView() {
                   </Table>
                 </TableContainer>
               ) : (
-                <Typography color="text.secondary">
-                  No API keys found. Create your first API key to get started.
-                </Typography>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography color="text.secondary" sx={{ mb: 2 }}>
+                    No API keys found. Create your first API key to get started.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={() => router.push('/api-keys')}
+                  >
+                    Create API Key
+                  </Button>
+                </Box>
               )}
             </CardContent>
           </Card>

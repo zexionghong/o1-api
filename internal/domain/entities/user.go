@@ -33,7 +33,7 @@ func (u *User) IsActive() bool {
 
 // CanMakeRequest 检查用户是否可以发起请求
 func (u *User) CanMakeRequest() bool {
-	return u.IsActive() && u.Balance >= 0
+	return u.IsActive() && u.Balance > 0
 }
 
 // DeductBalance 扣减用户余额

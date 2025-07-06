@@ -58,6 +58,7 @@ func (r *Router) SetupRoutes() {
 		r.serviceFactory.APIKeyService(),
 		r.serviceFactory.JWTService(),
 		r.serviceFactory.UserService(),
+		r.serviceFactory.UserRepository(),
 		r.logger,
 	)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(&r.config.RateLimit, r.logger)
@@ -74,7 +75,13 @@ func (r *Router) SetupRoutes() {
 	// 创建处理器
 	aiHandler := handlers.NewAIHandler(r.gatewayService, r.logger)
 	userHandler := handlers.NewUserHandler(r.serviceFactory.UserService(), r.logger)
-	apiKeyHandler := handlers.NewAPIKeyHandler(r.serviceFactory.APIKeyService(), r.logger)
+	apiKeyHandler := handlers.NewAPIKeyHandler(
+		r.serviceFactory.APIKeyService(),
+		r.serviceFactory.UsageLogRepository(),
+		r.serviceFactory.BillingRecordRepository(),
+		r.serviceFactory.ModelRepository(),
+		r.logger,
+	)
 	healthHandler := handlers.NewHealthHandler(r.gatewayService, r.logger)
 	authHandler := handlers.NewAuthHandler(r.serviceFactory.AuthService(), r.logger)
 
@@ -143,6 +150,7 @@ func (r *Router) SetupRoutes() {
 	// 管理API路由
 	admin := r.engine.Group("/admin")
 	admin.Use(rateLimitMiddleware.CustomRateLimit(200)) // 管理API更高的限流
+	admin.Use(authMiddleware.Authenticate())            // 需要JWT认证
 	{
 		// 用户管理路由
 		users := admin.Group("/users")
@@ -162,11 +170,14 @@ func (r *Router) SetupRoutes() {
 		{
 			apiKeys.POST("/", apiKeyHandler.CreateAPIKey)
 			apiKeys.GET("/", apiKeyHandler.ListAPIKeys)
+			apiKeys.GET("/:id/usage-logs", apiKeyHandler.GetAPIKeyUsageLogs)
+			apiKeys.GET("/:id/billing-records", apiKeyHandler.GetAPIKeyBillingRecords)
+			apiKeys.POST("/:id/revoke", apiKeyHandler.RevokeAPIKey)
 			apiKeys.GET("/:id", apiKeyHandler.GetAPIKey)
 			apiKeys.PUT("/:id", apiKeyHandler.UpdateAPIKey)
 			apiKeys.DELETE("/:id", apiKeyHandler.DeleteAPIKey)
-			apiKeys.POST("/:id/revoke", apiKeyHandler.RevokeAPIKey)
 		}
+
 	}
 
 	// 404处理

@@ -3,23 +3,24 @@ package services
 import (
 	"time"
 
+	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/infrastructure/async"
 	"ai-api-gateway/internal/infrastructure/config"
 	"ai-api-gateway/internal/infrastructure/logger"
 	redisInfra "ai-api-gateway/internal/infrastructure/redis"
-	"ai-api-gateway/internal/infrastructure/repositories"
+	infraRepos "ai-api-gateway/internal/infrastructure/repositories"
 )
 
 // ServiceFactory 服务工厂
 type ServiceFactory struct {
-	repoFactory  *repositories.RepositoryFactory
+	repoFactory  *infraRepos.RepositoryFactory
 	redisFactory *redisInfra.RedisFactory
 	config       *config.Config
 	logger       logger.Logger
 }
 
 // NewServiceFactory 创建服务工厂
-func NewServiceFactory(repoFactory *repositories.RepositoryFactory, redisFactory *redisInfra.RedisFactory, cfg *config.Config, log logger.Logger) *ServiceFactory {
+func NewServiceFactory(repoFactory *infraRepos.RepositoryFactory, redisFactory *redisInfra.RedisFactory, cfg *config.Config, log logger.Logger) *ServiceFactory {
 	return &ServiceFactory{
 		repoFactory:  repoFactory,
 		redisFactory: redisFactory,
@@ -134,6 +135,26 @@ func (f *ServiceFactory) AuthService() AuthService {
 		f.repoFactory.UserRepository(),
 		f.JWTService(),
 	)
+}
+
+// UsageLogRepository 获取使用日志仓储
+func (f *ServiceFactory) UsageLogRepository() repositories.UsageLogRepository {
+	return f.repoFactory.UsageLogRepository()
+}
+
+// BillingRecordRepository 获取计费记录仓储
+func (f *ServiceFactory) BillingRecordRepository() repositories.BillingRecordRepository {
+	return f.repoFactory.BillingRecordRepository()
+}
+
+// UserRepository 获取用户仓储
+func (f *ServiceFactory) UserRepository() repositories.UserRepository {
+	return f.repoFactory.UserRepository()
+}
+
+// ModelRepository 获取模型仓储
+func (f *ServiceFactory) ModelRepository() repositories.ModelRepository {
+	return f.repoFactory.ModelRepository()
 }
 
 // isAsyncQuotaEnabled 检查是否启用异步配额处理

@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"ai-api-gateway/internal/application/dto"
 	"ai-api-gateway/internal/domain/entities"
@@ -10,6 +12,19 @@ import (
 	"ai-api-gateway/internal/domain/values"
 	redisInfra "ai-api-gateway/internal/infrastructure/redis"
 )
+
+// generateRandomAPIKeyName 生成随机API密钥名称
+func generateRandomAPIKeyName() string {
+	adjectives := []string{"Swift", "Bright", "Smart", "Quick", "Fast", "Cool", "Sharp", "Bold"}
+	nouns := []string{"Key", "Token", "Access", "Gate", "Bridge", "Link", "Path", "Code"}
+
+	rand.Seed(time.Now().UnixNano())
+	randomAdjective := adjectives[rand.Intn(len(adjectives))]
+	randomNoun := nouns[rand.Intn(len(nouns))]
+	randomNumber := rand.Intn(1000)
+
+	return fmt.Sprintf("%s%s%d", randomAdjective, randomNoun, randomNumber)
+}
 
 // APIKeyService API密钥服务接口
 type APIKeyService interface {
@@ -77,12 +92,20 @@ func (s *apiKeyServiceImpl) CreateAPIKey(ctx context.Context, req *dto.CreateAPI
 		return nil, fmt.Errorf("failed to generate api key: %w", err)
 	}
 
+	// 处理API密钥名称：如果用户没有提供名称，则生成随机名称
+	var apiKeyName string
+	if req.Name != nil && *req.Name != "" {
+		apiKeyName = *req.Name
+	} else {
+		apiKeyName = generateRandomAPIKeyName()
+	}
+
 	// 创建API密钥实体
 	apiKey := &entities.APIKey{
 		UserID:      req.UserID,
 		Key:         key,
 		KeyPrefix:   prefix,
-		Name:        &req.Name,
+		Name:        &apiKeyName,
 		Status:      entities.APIKeyStatusActive,
 		Permissions: req.Permissions,
 		ExpiresAt:   req.ExpiresAt,

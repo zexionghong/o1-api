@@ -135,6 +135,169 @@ func (r *billingRecordRepositoryImpl) GetByUserID(ctx context.Context, userID in
 	return records, nil
 }
 
+// GetByAPIKeyID 根据API密钥ID获取计费记录列表
+func (r *billingRecordRepositoryImpl) GetByAPIKeyID(ctx context.Context, apiKeyID int64, offset, limit int) ([]*entities.BillingRecord, error) {
+	query := `
+		SELECT br.id, br.user_id, br.usage_log_id, br.amount, br.currency, br.billing_type,
+			   br.description, br.status, br.processed_at, br.created_at
+		FROM billing_records br
+		INNER JOIN usage_logs ul ON br.usage_log_id = ul.id
+		WHERE ul.api_key_id = ?
+		ORDER BY br.created_at DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, apiKeyID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get billing records by api key id: %w", err)
+	}
+	defer rows.Close()
+
+	var records []*entities.BillingRecord
+	for rows.Next() {
+		record := &entities.BillingRecord{}
+		err := rows.Scan(
+			&record.ID,
+			&record.UserID,
+			&record.UsageLogID,
+			&record.Amount,
+			&record.Currency,
+			&record.BillingType,
+			&record.Description,
+			&record.Status,
+			&record.ProcessedAt,
+			&record.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan billing record: %w", err)
+		}
+		records = append(records, record)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate billing records: %w", err)
+	}
+
+	return records, nil
+}
+
+// GetByAPIKeyIDAndDateRange 根据API密钥ID和日期范围获取计费记录列表
+func (r *billingRecordRepositoryImpl) GetByAPIKeyIDAndDateRange(ctx context.Context, apiKeyID int64, start, end *time.Time, offset, limit int) ([]*entities.BillingRecord, error) {
+	var query string
+	var args []interface{}
+
+	baseQuery := `
+		SELECT br.id, br.user_id, br.usage_log_id, br.amount, br.currency, br.billing_type,
+			   br.description, br.status, br.processed_at, br.created_at
+		FROM billing_records br
+		INNER JOIN usage_logs ul ON br.usage_log_id = ul.id
+		WHERE ul.api_key_id = ?`
+
+	if start != nil && end != nil {
+		query = baseQuery + ` AND br.created_at >= ? AND br.created_at <= ?
+		ORDER BY br.created_at DESC
+		LIMIT ? OFFSET ?`
+		args = []interface{}{apiKeyID, *start, *end, limit, offset}
+	} else if start != nil {
+		query = baseQuery + ` AND br.created_at >= ?
+		ORDER BY br.created_at DESC
+		LIMIT ? OFFSET ?`
+		args = []interface{}{apiKeyID, *start, limit, offset}
+	} else if end != nil {
+		query = baseQuery + ` AND br.created_at <= ?
+		ORDER BY br.created_at DESC
+		LIMIT ? OFFSET ?`
+		args = []interface{}{apiKeyID, *end, limit, offset}
+	} else {
+		// 没有日期过滤，直接调用GetByAPIKeyID
+		return r.GetByAPIKeyID(ctx, apiKeyID, offset, limit)
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get billing records by api key id and date range: %w", err)
+	}
+	defer rows.Close()
+
+	var records []*entities.BillingRecord
+	for rows.Next() {
+		record := &entities.BillingRecord{}
+		err := rows.Scan(
+			&record.ID,
+			&record.UserID,
+			&record.UsageLogID,
+			&record.Amount,
+			&record.Currency,
+			&record.BillingType,
+			&record.Description,
+			&record.Status,
+			&record.ProcessedAt,
+			&record.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan billing record: %w", err)
+		}
+		records = append(records, record)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate billing records: %w", err)
+	}
+
+	return records, nil
+}
+
+// CountByAPIKeyID 根据API密钥ID获取计费记录总数
+func (r *billingRecordRepositoryImpl) CountByAPIKeyID(ctx context.Context, apiKeyID int64) (int64, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM billing_records br
+		INNER JOIN usage_logs ul ON br.usage_log_id = ul.id
+		WHERE ul.api_key_id = ?`
+
+	var count int64
+	err := r.db.QueryRowContext(ctx, query, apiKeyID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count billing records by api key id: %w", err)
+	}
+
+	return count, nil
+}
+
+// CountByAPIKeyIDAndDateRange 根据API密钥ID和日期范围获取计费记录总数
+func (r *billingRecordRepositoryImpl) CountByAPIKeyIDAndDateRange(ctx context.Context, apiKeyID int64, start, end *time.Time) (int64, error) {
+	var query string
+	var args []interface{}
+
+	baseQuery := `
+		SELECT COUNT(*)
+		FROM billing_records br
+		INNER JOIN usage_logs ul ON br.usage_log_id = ul.id
+		WHERE ul.api_key_id = ?`
+
+	if start != nil && end != nil {
+		query = baseQuery + ` AND br.created_at >= ? AND br.created_at <= ?`
+		args = []interface{}{apiKeyID, *start, *end}
+	} else if start != nil {
+		query = baseQuery + ` AND br.created_at >= ?`
+		args = []interface{}{apiKeyID, *start}
+	} else if end != nil {
+		query = baseQuery + ` AND br.created_at <= ?`
+		args = []interface{}{apiKeyID, *end}
+	} else {
+		// 没有日期过滤，直接调用CountByAPIKeyID
+		return r.CountByAPIKeyID(ctx, apiKeyID)
+	}
+
+	var count int64
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count billing records by api key id and date range: %w", err)
+	}
+
+	return count, nil
+}
+
 // GetByUsageLogID 根据使用日志ID获取计费记录
 func (r *billingRecordRepositoryImpl) GetByUsageLogID(ctx context.Context, usageLogID int64) (*entities.BillingRecord, error) {
 	query := `

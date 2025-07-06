@@ -29,6 +29,11 @@ export const navData = [
     ),
   },
   {
+    title: 'API Keys',
+    path: '/api-keys',
+    icon: icon('ic-lock'),
+  },
+  {
     title: 'User',
     path: '/user',
     icon: icon('ic-user'),

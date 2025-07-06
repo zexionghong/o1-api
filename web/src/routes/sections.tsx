@@ -16,6 +16,7 @@ import { ProtectedRoute } from 'src/components/auth/protected-route';
 
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 export const RealDashboardPage = lazy(() => import('src/pages/real-dashboard'));
+export const ApiKeysPage = lazy(() => import('src/pages/api-keys'));
 export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
@@ -57,6 +58,7 @@ export const routesSection: RouteObject[] = [
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'real-dashboard', element: <RealDashboardPage /> },
+      { path: 'api-keys', element: <ApiKeysPage /> },
       { path: 'user', element: <UserPage /> },
       { path: 'products', element: <ProductsPage /> },
       { path: 'blog', element: <BlogPage /> },
