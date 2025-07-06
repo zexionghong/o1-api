@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Popover from '@mui/material/Popover';
@@ -44,6 +45,7 @@ interface ApiKeyTableRowProps {
 // ----------------------------------------------------------------------
 
 export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onStatusChange, onDeleteRow }: ApiKeyTableRowProps) {
+  const { t } = useTranslation();
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -69,7 +71,7 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
   };
 
   const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return t('api_keys.never');
     return new Date(dateString).toLocaleDateString();
   };
 
@@ -119,7 +121,7 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
             <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
               {row.key_prefix}••••••••••••
             </Box>
-            <Tooltip title={copied ? 'API Key Copied!' : 'Copy full API Key'}>
+            <Tooltip title={copied ? t('api_keys.key_copied') : t('api_keys.copy_key')}>
               <IconButton
                 size="small"
                 onClick={handleCopyApiKey}
@@ -186,7 +188,7 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
             }}
           >
             <Iconify icon="solar:eye-bold" />
-            View Details
+            {t('api_keys.view_details')}
           </MenuItem>
 
           <MenuItem
@@ -209,7 +211,7 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
             sx={{ color: 'error.main' }}
           >
             <Iconify icon="solar:trash-bin-trash-bold" />
-            Delete
+            {t('common.delete')}
           </MenuItem>
         </MenuList>
       </Popover>

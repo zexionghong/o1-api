@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -102,6 +103,7 @@ export function ApiKeyDetailDialog({
   onStatusChange,
   onDelete
 }: ApiKeyDetailDialogProps) {
+  const { t } = useTranslation();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
@@ -279,7 +281,7 @@ export function ApiKeyDetailDialog({
 
   const handleDelete = () => {
     if (!apiKey) return;
-    if (window.confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+    if (window.confirm(t('api_keys.delete_confirm'))) {
       onDelete(apiKey.id);
     }
   };
@@ -330,9 +332,9 @@ export function ApiKeyDetailDialog({
       <DialogContent>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange}>
-            <Tab label="Overview" />
-            <Tab label="Usage Logs" />
-            <Tab label="Billing Records" />
+            <Tab label={t('dashboard.overview')} />
+            <Tab label={t('api_keys.usage_logs')} />
+            <Tab label={t('api_keys.billing_records')} />
           </Tabs>
         </Box>
 
@@ -422,12 +424,12 @@ export function ApiKeyDetailDialog({
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Time</TableCell>
-                      <TableCell>Model</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell align="right">Tokens</TableCell>
-                      <TableCell align="right">Cost</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>{t('usage_logs.time')}</TableCell>
+                      <TableCell>{t('usage_logs.model')}</TableCell>
+                      <TableCell>{t('usage_logs.type')}</TableCell>
+                      <TableCell align="right">{t('usage_logs.tokens')}</TableCell>
+                      <TableCell align="right">{t('usage_logs.cost')}</TableCell>
+                      <TableCell>{t('common.status')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -450,7 +452,7 @@ export function ApiKeyDetailDialog({
                     {usageLogs.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} align="center">
-                          No usage logs found
+                          {t('usage_logs.no_logs')}
                         </TableCell>
                       </TableRow>
                     )}
@@ -493,12 +495,12 @@ export function ApiKeyDetailDialog({
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Time</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Description</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                      <TableCell align="right">Balance Before</TableCell>
-                      <TableCell align="right">Balance After</TableCell>
+                      <TableCell>{t('billing.timestamp')}</TableCell>
+                      <TableCell>{t('billing.transaction_type')}</TableCell>
+                      <TableCell>{t('common.description')}</TableCell>
+                      <TableCell align="right">{t('billing.amount')}</TableCell>
+                      <TableCell align="right">{t('billing.balance_before')}</TableCell>
+                      <TableCell align="right">{t('billing.balance_after')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -517,7 +519,7 @@ export function ApiKeyDetailDialog({
                     {billingRecords.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} align="center">
-                          No billing records found
+                          {t('billing.no_records')}
                         </TableCell>
                       </TableRow>
                     )}

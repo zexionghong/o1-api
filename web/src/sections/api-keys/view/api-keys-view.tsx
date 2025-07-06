@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -52,6 +53,7 @@ interface CreateApiKeyData {
 // ----------------------------------------------------------------------
 
 export function ApiKeysView() {
+  const { t } = useTranslation();
   const { state } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -308,7 +310,7 @@ export function ApiKeysView() {
     <DashboardContent>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 5 }}>
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          API Keys
+          {t('api_keys.title')}
         </Typography>
         <Button
           variant="contained"
@@ -316,7 +318,7 @@ export function ApiKeysView() {
           startIcon={<Iconify icon="solar:pen-bold" />}
           onClick={() => setOpenCreateDialog(true)}
         >
-          New API Key
+          {t('api_keys.create_key')}
         </Button>
       </Box>
 
@@ -344,11 +346,11 @@ export function ApiKeysView() {
                 onRequestSort={() => {}}
                 onSelectAllClick={handleSelectAllClick}
                 headLabel={[
-                  { id: 'name', label: 'Name' },
-                  { id: 'key_prefix', label: 'Key Prefix' },
-                  { id: 'status', label: 'Status' },
-                  { id: 'last_used_at', label: 'Last Used' },
-                  { id: 'created_at', label: 'Created' },
+                  { id: 'name', label: t('common.name') },
+                  { id: 'key_prefix', label: t('api_keys.key_prefix') },
+                  { id: 'status', label: t('common.status') },
+                  { id: 'last_used_at', label: t('api_keys.last_used') },
+                  { id: 'created_at', label: t('common.created_at') },
                   { id: '' },
                 ]}
               />
@@ -389,12 +391,12 @@ export function ApiKeysView() {
 
       {/* Create API Key Dialog */}
       <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New API Key</DialogTitle>
+        <DialogTitle>{t('api_keys.create_key')}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <TextField
               fullWidth
-              label="API Key Name (Optional)"
+              label={t('api_keys.key_name')}
               placeholder="Leave empty to auto-generate"
               value={createFormData.name}
               onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
@@ -412,9 +414,9 @@ export function ApiKeysView() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenCreateDialog(false)}>{t('common.cancel')}</Button>
           <Button onClick={handleCreateApiKey} variant="contained">
-            Create
+            {t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>

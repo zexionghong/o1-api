@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
@@ -20,6 +21,7 @@ import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 export function SignInView() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { state, login, clearError } = useAuth();
 
@@ -82,7 +84,7 @@ export function SignInView() {
       <TextField
         fullWidth
         name="username"
-        label="Username"
+        label={t('auth.username')}
         value={formData.username}
         onChange={handleInputChange}
         disabled={state.isLoading}
@@ -94,13 +96,13 @@ export function SignInView() {
       />
 
       <Link variant="body2" color="inherit" sx={{ mb: 1.5 }}>
-        Forgot password?
+        {t('auth.forgot_password')}
       </Link>
 
       <TextField
         fullWidth
         name="password"
-        label="Password"
+        label={t('auth.password')}
         value={formData.password}
         onChange={handleInputChange}
         disabled={state.isLoading}
@@ -134,7 +136,7 @@ export function SignInView() {
         disabled={state.isLoading || !formData.username || !formData.password}
         startIcon={state.isLoading ? <CircularProgress size={20} /> : null}
       >
-        {state.isLoading ? 'Signing in...' : 'Sign in'}
+        {state.isLoading ? t('common.loading') : t('auth.login')}
       </Button>
     </Box>
   );
@@ -150,7 +152,7 @@ export function SignInView() {
           mb: 5,
         }}
       >
-        <Typography variant="h5">Sign in</Typography>
+        <Typography variant="h5">{t('auth.login')}</Typography>
         <Typography
           variant="body2"
           sx={{
@@ -163,7 +165,7 @@ export function SignInView() {
             sx={{ ml: 0.5, cursor: 'pointer' }}
             onClick={() => router.push('/sign-up')}
           >
-            Get started
+            {t('auth.get_started')}
           </Link>
         </Typography>
       </Box>

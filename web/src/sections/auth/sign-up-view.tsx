@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
@@ -20,6 +21,7 @@ import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 export function SignUpView() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { state, register, clearError } = useAuth();
 
@@ -153,7 +155,7 @@ export function SignUpView() {
       <TextField
         fullWidth
         name="username"
-        label="Username"
+        label={t('auth.username')}
         value={formData.username}
         onChange={handleInputChange}
         disabled={state.isLoading}
@@ -168,7 +170,7 @@ export function SignUpView() {
       <TextField
         fullWidth
         name="email"
-        label="Email address"
+        label={t('auth.email')}
         type="email"
         value={formData.email}
         onChange={handleInputChange}
@@ -184,7 +186,7 @@ export function SignUpView() {
       <TextField
         fullWidth
         name="full_name"
-        label="Full Name (Optional)"
+        label={t('users.full_name')}
         value={formData.full_name}
         onChange={handleInputChange}
         disabled={state.isLoading}
@@ -196,7 +198,7 @@ export function SignUpView() {
       <TextField
         fullWidth
         name="password"
-        label="Password"
+        label={t('auth.password')}
         value={formData.password}
         onChange={handleInputChange}
         disabled={state.isLoading}
@@ -225,7 +227,7 @@ export function SignUpView() {
       <TextField
         fullWidth
         name="confirmPassword"
-        label="Confirm Password"
+        label={t('auth.confirm_password')}
         value={formData.confirmPassword}
         onChange={handleInputChange}
         disabled={state.isLoading}
@@ -260,7 +262,7 @@ export function SignUpView() {
         disabled={state.isLoading}
         startIcon={state.isLoading ? <CircularProgress size={20} /> : null}
       >
-        {state.isLoading ? 'Creating account...' : 'Create account'}
+        {state.isLoading ? t('common.loading') : t('auth.register')}
       </Button>
     </Box>
   );
@@ -268,17 +270,17 @@ export function SignUpView() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h3" sx={{ mb: 2 }}>
-        Sign up
+        {t('auth.register')}
       </Typography>
 
       <Typography variant="body2" sx={{ color: 'text.secondary', mb: 5 }}>
-        Already have an account?{' '}
+        {t('auth.have_account')}{' '}
         <Link
           variant="subtitle2"
           sx={{ cursor: 'pointer' }}
           onClick={handleGoToSignIn}
         >
-          Sign in
+          {t('auth.login')}
         </Link>
       </Typography>
 

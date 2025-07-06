@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -57,6 +58,7 @@ interface UsageRecord {
 // ----------------------------------------------------------------------
 
 export function RealDashboardView() {
+  const { t } = useTranslation();
   const { state } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -163,14 +165,14 @@ export function RealDashboardView() {
   return (
     <DashboardContent maxWidth="xl">
       <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
-        Hi {state.user?.username}, Welcome back 👋
+        {t('dashboard.welcome')}, {state.user?.username} 👋
       </Typography>
 
       <Grid container spacing={3}>
         {/* 账户余额 */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Account Balance"
+            title={t('dashboard.balance')}
             total={userStats?.balance || 0}
             percent={0}
             icon={<img alt="Account Balance" src="/assets/icons/glass/ic-glass-bag.svg" />}
@@ -184,7 +186,7 @@ export function RealDashboardView() {
         {/* API密钥数量 */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="API Keys"
+            title={t('api_keys.title')}
             total={apiKeys.length}
             percent={0}
             color="secondary"
@@ -199,7 +201,7 @@ export function RealDashboardView() {
         {/* 总请求数 */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Total Requests"
+            title={t('dashboard.total_requests')}
             total={userStats?.total_requests || 0}
             percent={0}
             color="warning"
@@ -214,7 +216,7 @@ export function RealDashboardView() {
         {/* 总花费 */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Total Cost"
+            title={t('dashboard.total_cost')}
             total={userStats?.total_cost || 0}
             percent={0}
             color="error"
@@ -232,14 +234,14 @@ export function RealDashboardView() {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">
-                  API Keys
+                  {t('api_keys.title')}
                 </Typography>
                 <Button
                   variant="outlined"
                   size="small"
                   onClick={() => router.push('/api-keys')}
                 >
-                  Manage Keys
+                  {t('api_keys.manage_keys')}
                 </Button>
               </Box>
               {apiKeys.length > 0 ? (
@@ -247,10 +249,10 @@ export function RealDashboardView() {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Key Prefix</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Created</TableCell>
+                        <TableCell>{t('common.name')}</TableCell>
+                        <TableCell>{t('api_keys.key_prefix')}</TableCell>
+                        <TableCell>{t('common.status')}</TableCell>
+                        <TableCell>{t('common.created_at')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -278,13 +280,13 @@ export function RealDashboardView() {
               ) : (
                 <Box sx={{ textAlign: 'center', py: 3 }}>
                   <Typography color="text.secondary" sx={{ mb: 2 }}>
-                    No API keys found. Create your first API key to get started.
+                    {t('api_keys.no_keys')}
                   </Typography>
                   <Button
                     variant="contained"
                     onClick={() => router.push('/api-keys')}
                   >
-                    Create API Key
+                    {t('api_keys.create_key')}
                   </Button>
                 </Box>
               )}
@@ -297,23 +299,23 @@ export function RealDashboardView() {
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>
-                Usage Statistics
+                {t('dashboard.statistics')}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary">Total Requests:</Typography>
+                  <Typography color="text.secondary">{t('dashboard.total_requests')}:</Typography>
                   <Typography variant="h6">{userStats?.total_requests || 0}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary">Total Tokens:</Typography>
+                  <Typography color="text.secondary">{t('dashboard.total_tokens')}:</Typography>
                   <Typography variant="h6">{userStats?.total_tokens || 0}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary">Total Cost:</Typography>
+                  <Typography color="text.secondary">{t('dashboard.total_cost')}:</Typography>
                   <Typography variant="h6">${userStats?.total_cost?.toFixed(4) || '0.0000'}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography color="text.secondary">Account Balance:</Typography>
+                  <Typography color="text.secondary">{t('dashboard.balance')}:</Typography>
                   <Typography variant="h6" color={userStats?.balance && userStats.balance > 0 ? 'success.main' : 'error.main'}>
                     ${userStats?.balance?.toFixed(2) || '0.00'}
                   </Typography>

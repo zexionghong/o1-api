@@ -1,6 +1,7 @@
 import type { IconButtonProps } from '@mui/material/IconButton';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePopover } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -11,28 +12,39 @@ import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 
 // ----------------------------------------------------------------------
 
-export type LanguagePopoverProps = IconButtonProps & {
-  data?: {
-    value: string;
-    label: string;
-    icon: string;
-  }[];
-};
+const LANGUAGES = [
+  {
+    value: 'en',
+    label: 'English',
+    icon: '/assets/icons/flags/ic-flag-en.svg',
+  },
+  {
+    value: 'zh',
+    label: '中文',
+    icon: '/assets/icons/flags/ic-flag-cn.svg',
+  },
+  {
+    value: 'ja',
+    label: '日本語',
+    icon: '/assets/icons/flags/ic-flag-jp.svg',
+  },
+];
 
-export function LanguagePopover({ data = [], sx, ...other }: LanguagePopoverProps) {
+export type LanguagePopoverProps = IconButtonProps;
+
+export function LanguagePopover({ sx, ...other }: LanguagePopoverProps) {
+  const { i18n } = useTranslation();
   const { open, anchorEl, onClose, onOpen } = usePopover();
-
-  const [locale, setLocale] = useState(data[0].value);
 
   const handleChangeLang = useCallback(
     (newLang: string) => {
-      setLocale(newLang);
+      i18n.changeLanguage(newLang);
       onClose();
     },
-    [onClose]
+    [i18n, onClose]
   );
 
-  const currentLang = data.find((lang) => lang.value === locale);
+  const currentLang = LANGUAGES.find((lang) => lang.value === i18n.language) || LANGUAGES[0];
 
   const renderFlag = (label?: string, icon?: string) => (
     <Box
@@ -70,7 +82,7 @@ export function LanguagePopover({ data = [], sx, ...other }: LanguagePopoverProp
           },
         }}
       >
-        {data?.map((option) => (
+        {LANGUAGES.map((option) => (
           <MenuItem
             key={option.value}
             selected={option.value === currentLang?.value}

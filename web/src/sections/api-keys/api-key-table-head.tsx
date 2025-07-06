@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import Box from '@mui/material/Box';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
@@ -38,6 +40,8 @@ export function ApiKeyTableHead({
   onRequestSort,
   onSelectAllClick,
 }: ApiKeyTableHeadProps) {
+  const { t } = useTranslation();
+
   const createSortHandler = (property: string) => (event: React.MouseEvent<unknown>) => {
     onRequestSort(event, property);
   };
