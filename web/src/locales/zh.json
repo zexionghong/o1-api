@@ -29,6 +29,33 @@
     "total": "总计",
     "items": "项"
   },
+  "profile": {
+    "title": "个人中心",
+    "account_settings": "账户设置",
+    "basic_info": "基本信息",
+    "basic_info_desc": "您的基本账户信息",
+    "username": "用户名",
+    "email": "邮箱",
+    "password": "密码",
+    "password_desc": "定期更改密码以保护您的账户安全",
+    "change_password": "修改密码",
+    "change_password_desc": "请输入您的当前密码和新密码",
+    "current_password": "当前密码",
+    "new_password": "新密码",
+    "confirm_new_password": "确认新密码",
+    "current_password_required": "请输入当前密码",
+    "new_password_required": "请输入新密码",
+    "confirm_password_required": "请确认新密码",
+    "password_min_length": "密码长度至少6位",
+    "passwords_not_match": "两次输入的密码不一致",
+    "update_password": "更新密码",
+    "account_status": "账户状态",
+    "status": "状态",
+    "active": "正常",
+    "balance": "余额",
+    "user_not_found": "用户信息未找到",
+    "please_login_again": "请重新登录"
+  },
   "auth": {
     "login": "登录",
     "logout": "退出登录",
@@ -63,8 +90,8 @@
   "navigation": {
     "dashboard": "仪表板",
     "api_keys": "API 密钥",
+    "profile": "个人中心",
     "settings": "设置",
-    "profile": "个人资料",
     "documentation": "文档",
     "support": "支持"
   },

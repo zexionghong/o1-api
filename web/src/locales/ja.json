@@ -29,6 +29,33 @@
     "total": "合計",
     "items": "件"
   },
+  "profile": {
+    "title": "プロフィール",
+    "account_settings": "アカウント設定",
+    "basic_info": "基本情報",
+    "basic_info_desc": "あなたの基本的なアカウント情報",
+    "username": "ユーザー名",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "password_desc": "アカウントのセキュリティを保つため、定期的にパスワードを変更してください",
+    "change_password": "パスワード変更",
+    "change_password_desc": "現在のパスワードと新しいパスワードを入力してください",
+    "current_password": "現在のパスワード",
+    "new_password": "新しいパスワード",
+    "confirm_new_password": "新しいパスワード（確認）",
+    "current_password_required": "現在のパスワードを入力してください",
+    "new_password_required": "新しいパスワードを入力してください",
+    "confirm_password_required": "新しいパスワードを確認してください",
+    "password_min_length": "パスワードは6文字以上である必要があります",
+    "passwords_not_match": "パスワードが一致しません",
+    "update_password": "パスワードを更新",
+    "account_status": "アカウントステータス",
+    "status": "ステータス",
+    "active": "アクティブ",
+    "balance": "残高",
+    "user_not_found": "ユーザー情報が見つかりません",
+    "please_login_again": "再度ログインしてください"
+  },
   "auth": {
     "login": "ログイン",
     "logout": "ログアウト",
@@ -63,8 +90,8 @@
   "navigation": {
     "dashboard": "ダッシュボード",
     "api_keys": "APIキー",
-    "settings": "設定",
     "profile": "プロフィール",
+    "settings": "設定",
     "documentation": "ドキュメント",
     "support": "サポート"
   },

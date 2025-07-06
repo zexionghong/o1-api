@@ -231,4 +231,7 @@ export function useAuth(): AuthContextType {
   return context;
 }
 
+// 别名导出，保持向后兼容
+export const useAuthContext = useAuth;
+
 export default AuthContext;

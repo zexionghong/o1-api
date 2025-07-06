@@ -11,7 +11,7 @@ import { NavMobile, NavDesktop } from './nav';
 import { layoutClasses } from '../core/classes';
 import { _account } from '../nav-config-account';
 import { dashboardLayoutVars } from './css-vars';
-import { navData } from '../nav-config-dashboard';
+import { useNavData } from '../nav-config-dashboard';
 import { MainSection } from '../core/main-section';
 import { MenuButton } from '../components/menu-button';
 import { HeaderSection } from '../core/header-section';
@@ -43,6 +43,7 @@ export function DashboardLayout({
   layoutQuery = 'lg',
 }: DashboardLayoutProps) {
   const theme = useTheme();
+  const navData = useNavData();
 
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
   const { value: navOpen, onToggle: onNavToggle } = useBoolean(true);
