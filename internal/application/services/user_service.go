@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"ai-api-gateway/internal/application/dto"
+	"ai-api-gateway/internal/application/utils"
 	"ai-api-gateway/internal/domain/entities"
 	"ai-api-gateway/internal/domain/repositories"
 	redisInfra "ai-api-gateway/internal/infrastructure/redis"
@@ -237,7 +238,9 @@ func (s *userServiceImpl) DeleteUser(ctx context.Context, id int64) error {
 
 // ListUsers 获取用户列表
 func (s *userServiceImpl) ListUsers(ctx context.Context, pagination *dto.PaginationRequest) (*dto.UserListResponse, error) {
-	pagination.SetDefaults()
+	// 使用分页助手
+	paginationHelper := utils.NewPaginationHelper()
+	paginationHelper.ValidateAndSetDefaults(pagination)
 
 	// 获取用户列表
 	users, err := s.userRepo.List(ctx, pagination.GetOffset(), pagination.GetLimit())
@@ -251,22 +254,20 @@ func (s *userServiceImpl) ListUsers(ctx context.Context, pagination *dto.Paginat
 		return nil, fmt.Errorf("failed to count users: %w", err)
 	}
 
-	// 构造响应
-	response := &dto.UserListResponse{
-		Users:    dto.FromUserEntities(users),
-		Total:    total,
-		Page:     pagination.Page,
-		PageSize: pagination.PageSize,
-	}
+	// 转换用户实体为响应DTO
+	userResponses := dto.FromUserEntities(users)
 
-	// 计算总页数
-	paginationResp := &dto.PaginationResponse{
-		Page:     pagination.Page,
-		PageSize: pagination.PageSize,
-		Total:    total,
+	// 使用分页助手构建响应
+	baseResponse := paginationHelper.BuildListResponse(userResponses, total, pagination)
+
+	// 构造用户列表响应
+	response := &dto.UserListResponse{
+		Users:      baseResponse.Data.([]*dto.UserResponse),
+		Total:      baseResponse.Total,
+		Page:       baseResponse.Page,
+		PageSize:   baseResponse.PageSize,
+		TotalPages: baseResponse.TotalPages,
 	}
-	paginationResp.CalculateTotalPages()
-	response.TotalPages = paginationResp.TotalPages
 
 	return response, nil
 }

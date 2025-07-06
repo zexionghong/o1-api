@@ -62,9 +62,22 @@ func (p *PaginationRequest) GetOffset() int {
 	return (p.Page - 1) * p.PageSize
 }
 
-// GetLimit 获取限制数量
+// GetLimit 获取限制数
 func (p *PaginationRequest) GetLimit() int {
 	return p.PageSize
+}
+
+// SetDefaults 设置默认值
+func (p *PaginationRequest) SetDefaults() {
+	if p.Page <= 0 {
+		p.Page = 1
+	}
+	if p.PageSize <= 0 {
+		p.PageSize = 10
+	}
+	if p.PageSize > 100 {
+		p.PageSize = 100
+	}
 }
 
 // CalculateTotalPages 计算总页数
@@ -74,17 +87,13 @@ func (p *PaginationResponse) CalculateTotalPages() {
 	}
 }
 
-// SetDefaults 设置默认值
-func (p *PaginationRequest) SetDefaults() {
-	if p.Page <= 0 {
-		p.Page = 1
-	}
-	if p.PageSize <= 0 {
-		p.PageSize = 20
-	}
-	if p.PageSize > 100 {
-		p.PageSize = 100
-	}
+// ListResponseBase 通用列表响应基础结构
+type ListResponseBase struct {
+	Data       interface{} `json:"data"`
+	Total      int64       `json:"total"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"page_size"`
+	TotalPages int         `json:"total_pages"`
 }
 
 // HealthCheckResponse 健康检查响应

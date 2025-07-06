@@ -9,6 +9,7 @@ import (
 	"ai-api-gateway/internal/domain/entities"
 	"ai-api-gateway/internal/domain/repositories"
 	"ai-api-gateway/internal/infrastructure/logger"
+	"ai-api-gateway/internal/presentation/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -270,46 +271,25 @@ func (m *AuthMiddleware) tryAPIKeyAuth(c *gin.Context) bool {
 	return true
 }
 
+// 这些函数已移至 internal/presentation/utils/context_utils.go
+// 为了保持向后兼容性，这里保留别名
+
 // GetUserFromContext 从上下文中获取用户信息
 func GetUserFromContext(c *gin.Context) (*entities.User, bool) {
-	userInterface, exists := c.Get("user")
-	if !exists {
-		return nil, false
-	}
-
-	user, ok := userInterface.(*entities.User)
-	return user, ok
+	return utils.GetUserFromContext(c)
 }
 
 // GetAPIKeyFromContext 从上下文中获取API密钥信息
 func GetAPIKeyFromContext(c *gin.Context) (*entities.APIKey, bool) {
-	apiKeyInterface, exists := c.Get("api_key")
-	if !exists {
-		return nil, false
-	}
-
-	apiKey, ok := apiKeyInterface.(*entities.APIKey)
-	return apiKey, ok
+	return utils.GetAPIKeyFromContext(c)
 }
 
 // GetUserIDFromContext 从上下文中获取用户ID
 func GetUserIDFromContext(c *gin.Context) (int64, bool) {
-	userIDInterface, exists := c.Get("user_id")
-	if !exists {
-		return 0, false
-	}
-
-	userID, ok := userIDInterface.(int64)
-	return userID, ok
+	return utils.GetUserIDFromContext(c)
 }
 
 // GetAPIKeyIDFromContext 从上下文中获取API密钥ID
 func GetAPIKeyIDFromContext(c *gin.Context) (int64, bool) {
-	apiKeyIDInterface, exists := c.Get("api_key_id")
-	if !exists {
-		return 0, false
-	}
-
-	apiKeyID, ok := apiKeyIDInterface.(int64)
-	return apiKeyID, ok
+	return utils.GetAPIKeyIDFromContext(c)
 }
