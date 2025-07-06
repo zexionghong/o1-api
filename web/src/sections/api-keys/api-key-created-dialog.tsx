@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
@@ -26,6 +27,7 @@ interface ApiKeyCreatedDialogProps {
 // ----------------------------------------------------------------------
 
 export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKeyCreatedDialogProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -61,7 +63,7 @@ export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKe
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Iconify icon="solar:key-bold" sx={{ color: 'success.main' }} />
-          <Typography variant="h6">API Key Created Successfully!</Typography>
+          <Typography variant="h6">{t('api_keys.created_successfully')}</Typography>
         </Box>
       </DialogTitle>
 
@@ -69,20 +71,19 @@ export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKe
         <Box sx={{ mb: 3 }}>
           <Alert severity="warning" sx={{ mb: 3 }}>
             <Typography variant="body2">
-              <strong>Important:</strong> This is the only time you will see the complete API key. 
-              Please copy it now and store it securely. You won&apos;t be able to see it again.
+              <strong>{t('api_keys.important')}:</strong> {t('api_keys.security_warning')}
             </Typography>
           </Alert>
 
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            API Key Name:
+            {t('api_keys.api_key_name')}:
           </Typography>
           <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
             {apiKeyName}
           </Typography>
 
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            Your API Key:
+            {t('api_keys.your_api_key')}:
           </Typography>
           
           <TextField
@@ -117,19 +118,19 @@ export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKe
 
           {copied && (
             <Alert severity="success" sx={{ mb: 2 }}>
-              API Key copied to clipboard!
+              {t('api_keys.key_copied')}
             </Alert>
           )}
 
           <Box sx={{ p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
             <Typography variant="body2" color="info.dark">
-              <strong>Usage Instructions:</strong>
+              <strong>{t('api_keys.usage_instructions')}:</strong>
               <br />
-              • Include this API key in your request headers: <code>Authorization: Bearer {apiKey.substring(0, 20)}...</code>
+              • {t('api_keys.usage_instruction_1')}: <code>Authorization: Bearer {apiKey.substring(0, 20)}...</code>
               <br />
-              • Keep your API key secure and never share it publicly
+              • {t('api_keys.usage_instruction_2')}
               <br />
-              • You can manage this key from the API Keys page (enable/disable/delete)
+              • {t('api_keys.usage_instruction_3')}
             </Typography>
           </Box>
         </Box>
@@ -137,7 +138,7 @@ export function ApiKeyCreatedDialog({ open, apiKey, apiKeyName, onClose }: ApiKe
 
       <DialogActions>
         <Button onClick={handleClose} variant="contained" color="primary">
-          I&apos;ve Saved My API Key
+          {t('api_keys.saved_api_key')}
         </Button>
       </DialogActions>
     </Dialog>

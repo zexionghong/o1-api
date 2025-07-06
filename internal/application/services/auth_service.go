@@ -28,6 +28,9 @@ type AuthService interface {
 	// GetUserProfile 获取用户资料
 	GetUserProfile(ctx context.Context, userID int64) (*dto.GetUserProfileResponse, error)
 
+	// Recharge 用户充值
+	Recharge(ctx context.Context, userID int64, req *dto.UserRechargeRequest) (*dto.GetUserProfileResponse, error)
+
 	// ValidateUser 验证用户凭据
 	ValidateUser(ctx context.Context, username, password string) (*entities.User, error)
 }
@@ -200,6 +203,41 @@ func (s *authServiceImpl) GetUserProfile(ctx context.Context, userID int64) (*dt
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
+	response := &dto.GetUserProfileResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Balance:   user.Balance,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
+	if user.FullName != nil {
+		response.FullName = *user.FullName
+	}
+
+	return response, nil
+}
+
+// Recharge 用户充值
+func (s *authServiceImpl) Recharge(ctx context.Context, userID int64, req *dto.UserRechargeRequest) (*dto.GetUserProfileResponse, error) {
+	// 获取用户信息
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	// 添加余额
+	if err := user.AddBalance(req.Amount); err != nil {
+		return nil, fmt.Errorf("failed to add balance: %w", err)
+	}
+
+	// 更新数据库中的余额
+	if err := s.userRepo.UpdateBalance(ctx, user.ID, user.Balance); err != nil {
+		return nil, fmt.Errorf("failed to update user balance: %w", err)
+	}
+
+	// 返回更新后的用户资料
 	response := &dto.GetUserProfileResponse{
 		ID:        user.ID,
 		Username:  user.Username,

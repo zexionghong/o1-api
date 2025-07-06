@@ -49,6 +49,12 @@ type BalanceUpdateRequest struct {
 	Description string  `json:"description,omitempty"`
 }
 
+// UserRechargeRequest 用户充值请求
+type UserRechargeRequest struct {
+	Amount      float64 `json:"amount" validate:"required,gt=0"`
+	Description string  `json:"description,omitempty"`
+}
+
 // ToEntity 转换为实体
 func (r *CreateUserRequest) ToEntity() *entities.User {
 	return &entities.User{

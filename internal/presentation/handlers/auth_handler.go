@@ -308,3 +308,71 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.SuccessResponse(nil, "Password changed successfully"))
 }
+
+// Recharge 用户充值
+// @Summary 用户充值
+// @Description 用户为自己的账户充值
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.UserRechargeRequest true "充值请求"
+// @Success 200 {object} dto.GetUserProfileResponse "充值成功"
+// @Failure 400 {object} dto.ErrorResponse "请求参数错误"
+// @Failure 401 {object} dto.ErrorResponse "未认证"
+// @Failure 500 {object} dto.ErrorResponse "服务器内部错误"
+// @Router /auth/recharge [post]
+func (h *AuthHandler) Recharge(c *gin.Context) {
+	// 从上下文获取用户ID
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse(
+			"AUTHENTICATION_REQUIRED",
+			"User authentication required",
+			nil,
+		))
+		return
+	}
+
+	userIDInt64, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+			"INTERNAL_ERROR",
+			"Invalid user ID format",
+			nil,
+		))
+		return
+	}
+
+	var req dto.UserRechargeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.WithField("error", err.Error()).Warn("Invalid recharge request")
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse(
+			"INVALID_REQUEST",
+			"Invalid request body",
+			map[string]interface{}{
+				"details": err.Error(),
+			},
+		))
+		return
+	}
+
+	// 调用用户服务进行充值
+	response, err := h.authService.Recharge(c.Request.Context(), userIDInt64, &req)
+	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"user_id": userIDInt64,
+			"amount":  req.Amount,
+			"error":   err.Error(),
+		}).Error("Failed to recharge user account")
+
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+			"RECHARGE_FAILED",
+			"Failed to recharge account",
+			nil,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.SuccessResponse(response, "Account recharged successfully"))
+}

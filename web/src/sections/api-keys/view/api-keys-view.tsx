@@ -398,10 +398,10 @@ export function ApiKeysView() {
             <TextField
               fullWidth
               label={t('api_keys.key_name')}
-              placeholder="Leave empty to auto-generate"
+              placeholder={t('api_keys.name_placeholder')}
               value={createFormData.name}
               onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
-              helperText="If left empty, a random name will be generated automatically"
+              helperText={t('api_keys.name_helper_text')}
               sx={{ mb: 2 }}
             />
             <Button
@@ -410,7 +410,7 @@ export function ApiKeysView() {
               onClick={() => setCreateFormData({ ...createFormData, name: generateRandomName() })}
               sx={{ mb: 3 }}
             >
-              Generate Random Name
+              {t('api_keys.generate_random_name')}
             </Button>
           </Box>
         </DialogContent>

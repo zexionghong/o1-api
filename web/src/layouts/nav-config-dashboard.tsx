@@ -28,6 +28,11 @@ export function useNavData() {
       icon: icon('ic-lock'),
     },
     {
+      title: t('navigation.wallet'),
+      path: '/wallet',
+      icon: icon('ic-banking'),
+    },
+    {
       title: t('navigation.profile'),
       path: '/profile',
       icon: icon('ic-user'),
@@ -46,6 +51,11 @@ export const navData = [
     title: 'API Keys',
     path: '/api-keys',
     icon: icon('ic-lock'),
+  },
+  {
+    title: 'Wallet',
+    path: '/wallet',
+    icon: icon('ic-banking'),
   },
   {
     title: 'Profile',

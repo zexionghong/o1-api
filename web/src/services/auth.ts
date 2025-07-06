@@ -63,6 +63,11 @@ export interface ChangePasswordRequest {
   new_password: string;
 }
 
+export interface RechargeRequest {
+  amount: number;
+  description?: string;
+}
+
 // 认证服务类
 export class AuthService {
   /**
@@ -151,6 +156,22 @@ export class AuthService {
     if (!response.success) {
       throw new Error(response.error?.message || 'Password change failed');
     }
+  }
+
+  /**
+   * 充值余额
+   */
+  static async recharge(rechargeData: RechargeRequest): Promise<UserProfile> {
+    const response = await api.post<UserProfile>('/auth/recharge', {
+      amount: rechargeData.amount,
+      description: rechargeData.description || '用户充值'
+    });
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.error?.message || 'Failed to recharge');
   }
 
   /**
