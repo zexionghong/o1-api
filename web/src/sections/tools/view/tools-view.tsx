@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import Grid from '@mui/system/Grid';
 
 import { Iconify } from 'src/components/iconify';
+import api from 'src/services/api';
 
 import { ToolEditDialog } from '../tool-edit-dialog';
 import { ToolCreateDialog } from '../tool-create-dialog';
@@ -102,19 +103,10 @@ export function ToolsView() {
   const fetchUserTools = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8080/admin/tools/?category=${selectedCategory.toLowerCase().replace(' ', '_')}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.get(`/admin/tools/?category=${selectedCategory.toLowerCase().replace(' ', '_')}`);
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setUserTools(result.data);
-        }
+      if (response.success && response.data) {
+        setUserTools(response.data);
       } else {
         // 如果API失败，使用模拟数据
         const mockTools: UserTool[] = [

@@ -22,6 +22,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import api from 'src/services/api';
 
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 
@@ -66,46 +67,28 @@ export function RealDashboardView() {
       }
 
       // 获取用户资料（包含余额）
-      const profileResponse = await fetch('http://localhost:8080/auth/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const profileResponse = await api.get('/auth/profile');
 
-      if (!profileResponse.ok) {
+      if (!profileResponse.success || !profileResponse.data) {
         throw new Error('Failed to fetch user profile');
       }
 
-      const profileData = await profileResponse.json();
-      const userProfile = profileData.data;
+      const userProfile = profileResponse.data;
 
       // 获取用户的API密钥
-      const apiKeysResponse = await fetch(`http://localhost:8080/admin/users/${userProfile.id}/api-keys`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const apiKeysResponse = await api.get(`/admin/users/${userProfile.id}/api-keys`);
 
       let apiKeysData = [];
-      if (apiKeysResponse.ok) {
-        const apiKeysResult = await apiKeysResponse.json();
-        apiKeysData = apiKeysResult.data || [];
+      if (apiKeysResponse.success && apiKeysResponse.data) {
+        apiKeysData = apiKeysResponse.data || [];
       }
 
       // 获取使用情况统计
-      const usageResponse = await fetch('http://localhost:8080/v1/usage', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const usageResponse = await api.get('/v1/usage');
 
       let usageData = { total_requests: 0, total_tokens: 0, total_cost: 0 };
-      if (usageResponse.ok) {
-        const usageResult = await usageResponse.json();
-        usageData = usageResult.data || usageData;
+      if (usageResponse.success && usageResponse.data) {
+        usageData = usageResponse.data || usageData;
       }
 
       // 组合统计数据

@@ -22,6 +22,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import api from 'src/services/api';
+
 import { Iconify } from 'src/components/iconify';
 import { DateRangePicker } from 'src/components/date-range-picker';
 
@@ -157,16 +159,10 @@ export function ApiKeyDetailDialog({
         console.log('End date:', endDate, '-> ISO:', endDateISO);
       }
 
-      const response = await fetch(`http://localhost:8080/admin/api-keys/${apiKey.id}/usage-logs?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.get(`/admin/api-keys/${apiKey.id}/usage-logs?${params}`);
 
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data || {};
+      if (response.success && response.data) {
+        const data = response.data;
         setUsageLogs(data.data || []);
         setUsageLogsTotal(data.total || 0);
 
@@ -211,16 +207,10 @@ export function ApiKeyDetailDialog({
         params.append('end_date', endDateTime.toISOString());
       }
 
-      const response = await fetch(`http://localhost:8080/admin/api-keys/${apiKey.id}/billing-records?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.get(`/admin/api-keys/${apiKey.id}/billing-records?${params}`);
 
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data || {};
+      if (response.success && response.data) {
+        const data = response.data;
         setBillingRecords(data.data || []);
         setBillingRecordsTotal(data.total || 0);
       }

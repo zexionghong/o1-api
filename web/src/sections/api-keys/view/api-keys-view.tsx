@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Box from '@mui/material/Box';
@@ -19,6 +19,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useAuth } from 'src/contexts/auth-context';
 import { DashboardContent } from 'src/layouts/dashboard';
+import api from 'src/services/api';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
@@ -75,34 +76,22 @@ export function ApiKeysView() {
   });
 
   // 获取API密钥列表
-  const fetchApiKeys = async () => {
+  const fetchApiKeys = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('No access token found');
+      if (!state.user?.id) {
+        throw new Error('User ID not found');
       }
 
-      const response = await fetch(`http://localhost:8080/admin/users/${state.user?.id}/api-keys`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch API keys');
-      }
-
-      const result = await response.json();
-      setApiKeys(result.data || []);
+      const response = await api.get(`/admin/users/${state.user.id}/api-keys`);
+      setApiKeys(response.data || []);
     } catch (err) {
       console.error('Error fetching API keys:', err);
       setError(err instanceof Error ? err.message : 'Failed to load API keys');
     } finally {
       setLoading(false);
     }
-  };
+  }, [state.user?.id]);
 
   // 生成随机名称
   const generateRandomName = () => {
@@ -132,26 +121,17 @@ export function ApiKeysView() {
         requestData.name = createFormData.name.trim();
       }
 
-      const response = await fetch('http://localhost:8080/admin/api-keys/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
+      const response = await api.post('/admin/api-keys/', requestData);
 
-      if (!response.ok) {
+      if (!response.success) {
         throw new Error('Failed to create API key');
       }
 
-      const result = await response.json();
-
       // 显示创建成功对话框，包含完整的API Key
-      if (result.success && result.data) {
+      if (response.success && response.data) {
         setNewApiKey({
-          key: result.data.key,
-          name: result.data.name || 'Unnamed API Key',
+          key: response.data.key,
+          name: response.data.name || 'Unnamed API Key',
         });
         setOpenCreatedDialog(true);
       }
@@ -175,18 +155,9 @@ export function ApiKeysView() {
         throw new Error('No access token found');
       }
 
-      const response = await fetch(`http://localhost:8080/admin/api-keys/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status,
-        }),
-      });
+      const response = await api.put(`/admin/api-keys/${id}`, { status });
 
-      if (!response.ok) {
+      if (!response.success) {
         throw new Error('Failed to update API key status');
       }
 
@@ -210,18 +181,9 @@ export function ApiKeysView() {
       }
 
       // 使用软删除，将状态设置为revoked
-      const response = await fetch(`http://localhost:8080/admin/api-keys/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'revoked',
-        }),
-      });
+      const response = await api.put(`/admin/api-keys/${id}`, { status: 'revoked' });
 
-      if (!response.ok) {
+      if (!response.success) {
         throw new Error('Failed to delete API key');
       }
 
@@ -245,7 +207,7 @@ export function ApiKeysView() {
     if (state.user?.id) {
       fetchApiKeys();
     }
-  }, [state.user?.id]);
+  }, [state.user?.id, fetchApiKeys]);
 
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {

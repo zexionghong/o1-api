@@ -2,37 +2,56 @@ import type { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
 
 import axios from 'axios';
 
-// API基础配置
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { API_CONFIG } from 'src/config/api';
+
+// 扩展AxiosRequestConfig以支持skipAuth选项
+export interface ApiRequestConfig extends AxiosRequestConfig {
+  skipAuth?: boolean; // 跳过token注入
+}
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // 30秒超时
-  headers: {
-    'Content-Type': 'application/json'
-  },
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: API_CONFIG.DEFAULT_HEADERS,
 });
+
+// 检查是否需要跳过认证
+const shouldSkipAuth = (url: string, config?: ApiRequestConfig): boolean => {
+  // 如果明确指定跳过认证
+  if (config?.skipAuth) {
+    return true;
+  }
+
+  // 检查是否是不需要认证的接口
+  return API_CONFIG.NO_AUTH_ENDPOINTS.some((endpoint: string) => url.startsWith(endpoint));
+};
 
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
-    // 从localStorage获取token
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const url = config.url || '';
+
+    // 检查是否需要跳过认证
+    if (!shouldSkipAuth(url, config as ApiRequestConfig)) {
+      // 从localStorage获取token
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
-    
+
     // 添加请求ID用于追踪
-    config.headers['X-Request-ID'] = `web-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+    config.headers['X-Request-ID'] = `web-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
     console.log('API Request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
       baseURL: config.baseURL,
+      skipAuth: shouldSkipAuth(url, config as ApiRequestConfig),
       headers: config.headers,
     });
-    
+
     return config;
   },
   (error) => {
@@ -67,7 +86,7 @@ apiClient.interceptors.response.use(
         error.config._retry = true;
         
         try {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
             refresh_token: refreshToken,
           });
           
@@ -115,24 +134,42 @@ export interface ApiResponse<T = any> {
 // API请求方法封装
 export const api = {
   // GET请求
-  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+  get: <T = any>(url: string, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
     apiClient.get(url, config).then(response => response.data),
 
   // POST请求
-  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+  post: <T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
     apiClient.post(url, data, config).then(response => response.data),
 
   // PUT请求
-  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+  put: <T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
     apiClient.put(url, data, config).then(response => response.data),
 
   // DELETE请求
-  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+  delete: <T = any>(url: string, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
     apiClient.delete(url, config).then(response => response.data),
 
   // PATCH请求
-  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+  patch: <T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
     apiClient.patch(url, data, config).then(response => response.data),
+
+  // 不需要认证的请求方法（明确跳过token注入）
+  noAuth: {
+    get: <T = any>(url: string, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
+      apiClient.get(url, { ...config, skipAuth: true } as ApiRequestConfig).then(response => response.data),
+
+    post: <T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
+      apiClient.post(url, data, { ...config, skipAuth: true } as ApiRequestConfig).then(response => response.data),
+
+    put: <T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
+      apiClient.put(url, data, { ...config, skipAuth: true } as ApiRequestConfig).then(response => response.data),
+
+    delete: <T = any>(url: string, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
+      apiClient.delete(url, { ...config, skipAuth: true } as ApiRequestConfig).then(response => response.data),
+
+    patch: <T = any>(url: string, data?: any, config?: ApiRequestConfig): Promise<ApiResponse<T>> =>
+      apiClient.patch(url, data, { ...config, skipAuth: true } as ApiRequestConfig).then(response => response.data),
+  }
 };
 
 // 导出axios实例供特殊情况使用

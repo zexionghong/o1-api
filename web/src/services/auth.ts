@@ -72,11 +72,12 @@ export interface RechargeRequest {
 // 认证服务类
 export class AuthService {
   /**
-   * 用户登录
+   * 用户登录 - 不需要token认证
    */
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await api.post<LoginResponse>('/auth/login', credentials);
+      // 使用noAuth方法，确保不会注入token
+      const response = await api.noAuth.post<LoginResponse>('/auth/login', credentials);
 
       if (response.success && response.data) {
         // 存储token到localStorage
@@ -104,10 +105,11 @@ export class AuthService {
   }
 
   /**
-   * 用户注册
+   * 用户注册 - 不需要token认证
    */
   static async register(userData: RegisterRequest): Promise<RegisterResponse> {
-    const response = await api.post<RegisterResponse>('/auth/register', userData);
+    // 使用noAuth方法，确保不会注入token
+    const response = await api.noAuth.post<RegisterResponse>('/auth/register', userData);
 
     if (response.success && response.data) {
       return response.data;
@@ -117,10 +119,11 @@ export class AuthService {
   }
 
   /**
-   * 刷新访问令牌
+   * 刷新访问令牌 - 不需要token认证
    */
   static async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
-    const response = await api.post<RefreshTokenResponse>('/auth/refresh', {
+    // 使用noAuth方法，确保不会注入token
+    const response = await api.noAuth.post<RefreshTokenResponse>('/auth/refresh', {
       refresh_token: refreshToken,
     });
 

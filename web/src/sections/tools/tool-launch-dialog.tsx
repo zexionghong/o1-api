@@ -18,6 +18,7 @@ import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { useAuthContext } from 'src/contexts/auth-context';
+import api from 'src/services/api';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -107,22 +108,13 @@ export function ToolLaunchDialog({ open, tool, onClose, onLaunch }: Props) {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8080/admin/api-keys/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.get('/admin/api-keys/');
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          const activeKeys = result.data.filter((key: ApiKey) => key.status === 'active');
-          setApiKeys(activeKeys);
-          if (activeKeys.length === 1) {
-            setSelectedApiKey(activeKeys[0].id);
-          }
+      if (response.success && response.data) {
+        const activeKeys = response.data.filter((key: ApiKey) => key.status === 'active');
+        setApiKeys(activeKeys);
+        if (activeKeys.length === 1) {
+          setSelectedApiKey(activeKeys[0].id);
         }
       }
     } catch (error) {

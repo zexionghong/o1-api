@@ -19,6 +19,7 @@ import Switch from '@mui/material/Switch';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { useAuthContext } from 'src/contexts/auth-context';
+import api from 'src/services/api';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -99,19 +100,10 @@ export function ToolEditDialog({ open, tool, onClose, onSuccess }: Props) {
   // 获取模型列表
   const fetchModels = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8080/tools/models', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.noAuth.get('/tools/models');
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setModels(result.data);
-        }
+      if (response.success && response.data) {
+        setModels(response.data);
       }
     } catch (error) {
       console.error('Failed to fetch models:', error);
@@ -121,19 +113,10 @@ export function ToolEditDialog({ open, tool, onClose, onSuccess }: Props) {
   // 获取API密钥列表
   const fetchApiKeys = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8080/admin/tools/api-keys', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.get('/admin/tools/api-keys');
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          setApiKeys(result.data);
-        }
+      if (response.success && response.data) {
+        setApiKeys(response.data);
       }
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
@@ -152,28 +135,19 @@ export function ToolEditDialog({ open, tool, onClose, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8080/admin/tools/${tool.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          model_id: formData.model_id,
-          api_key_id: formData.api_key_id,
-          is_public: formData.is_public,
-        }),
+      const response = await api.put(`/admin/tools/${tool.id}`, {
+        name: formData.name,
+        description: formData.description,
+        model_id: formData.model_id,
+        api_key_id: formData.api_key_id,
+        is_public: formData.is_public,
       });
 
-      if (response.ok) {
+      if (response.success) {
         onSuccess();
         handleClose();
       } else {
-        const error = await response.json();
-        console.error('Failed to update tool:', error);
+        console.error('Failed to update tool:', response.error);
       }
     } catch (error) {
       console.error('Failed to update tool:', error);
