@@ -26,19 +26,24 @@ const (
 
 // Model AI模型实体
 type Model struct {
-	ID                int64       `json:"id" db:"id"`
-	Name              string      `json:"name" db:"name"`
-	Slug              string      `json:"slug" db:"slug"`
-	DisplayName       *string     `json:"display_name,omitempty" db:"display_name"`
-	Description       *string     `json:"description,omitempty" db:"description"`
-	ModelType         ModelType   `json:"model_type" db:"model_type"`
-	ContextLength     *int        `json:"context_length,omitempty" db:"context_length"`
-	MaxTokens         *int        `json:"max_tokens,omitempty" db:"max_tokens"`
-	SupportsStreaming bool        `json:"supports_streaming" db:"supports_streaming"`
-	SupportsFunctions bool        `json:"supports_functions" db:"supports_functions"`
-	Status            ModelStatus `json:"status" db:"status"`
-	CreatedAt         time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time   `json:"updated_at" db:"updated_at"`
+	ID                int64       `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name              string      `json:"name" gorm:"not null;size:100"`
+	Slug              string      `json:"slug" gorm:"uniqueIndex;not null;size:100"`
+	DisplayName       *string     `json:"display_name,omitempty" gorm:"size:200"`
+	Description       *string     `json:"description,omitempty" gorm:"type:text"`
+	ModelType         ModelType   `json:"model_type" gorm:"not null;size:50;index"`
+	ContextLength     *int        `json:"context_length,omitempty"`
+	MaxTokens         *int        `json:"max_tokens,omitempty"`
+	SupportsStreaming bool        `json:"supports_streaming" gorm:"not null;default:false"`
+	SupportsFunctions bool        `json:"supports_functions" gorm:"not null;default:false"`
+	Status            ModelStatus `json:"status" gorm:"not null;default:active;size:20;index"`
+	CreatedAt         time.Time   `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt         time.Time   `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// TableName 指定表名
+func (Model) TableName() string {
+	return "models"
 }
 
 // IsAvailable 检查模型是否可用
@@ -105,16 +110,21 @@ const (
 
 // ModelPricing 模型定价实体
 type ModelPricing struct {
-	ID             int64       `json:"id" db:"id"`
-	ModelID        int64       `json:"model_id" db:"model_id"`
-	PricingType    PricingType `json:"pricing_type" db:"pricing_type"`
-	PricePerUnit   float64     `json:"price_per_unit" db:"price_per_unit"`
-	Multiplier     float64     `json:"multiplier" db:"multiplier"` // 价格倍率，默认1.5
-	Unit           PricingUnit `json:"unit" db:"unit"`
-	Currency       string      `json:"currency" db:"currency"`
-	EffectiveFrom  time.Time   `json:"effective_from" db:"effective_from"`
-	EffectiveUntil *time.Time  `json:"effective_until,omitempty" db:"effective_until"`
-	CreatedAt      time.Time   `json:"created_at" db:"created_at"`
+	ID             int64       `json:"id" gorm:"primaryKey;autoIncrement"`
+	ModelID        int64       `json:"model_id" gorm:"not null;index"`
+	PricingType    PricingType `json:"pricing_type" gorm:"not null;size:20;index"`
+	PricePerUnit   float64     `json:"price_per_unit" gorm:"type:numeric(15,8);not null"`
+	Multiplier     float64     `json:"multiplier" gorm:"type:numeric(5,2);not null;default:1.5"` // 价格倍率，默认1.5
+	Unit           PricingUnit `json:"unit" gorm:"not null;size:20"`
+	Currency       string      `json:"currency" gorm:"not null;default:USD;size:3"`
+	EffectiveFrom  time.Time   `json:"effective_from" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	EffectiveUntil *time.Time  `json:"effective_until,omitempty"`
+	CreatedAt      time.Time   `json:"created_at" gorm:"not null;autoCreateTime"`
+}
+
+// TableName 指定表名
+func (ModelPricing) TableName() string {
+	return "model_pricing"
 }
 
 // IsEffective 检查定价是否在有效期内

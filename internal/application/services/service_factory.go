@@ -143,7 +143,7 @@ func (f *ServiceFactory) ToolService() *ToolService {
 	return NewToolService(
 		f.repoFactory.ToolRepository(),
 		f.repoFactory.APIKeyRepository(),
-		f.repoFactory.DB(),
+		f.repoFactory.ModelRepository(),
 	)
 }
 

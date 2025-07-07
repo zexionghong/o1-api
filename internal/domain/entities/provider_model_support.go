@@ -7,15 +7,20 @@ import (
 
 // ProviderModelSupport 提供商模型支持实体
 type ProviderModelSupport struct {
-	ID                 int64     `json:"id" db:"id"`
-	ProviderID         int64     `json:"provider_id" db:"provider_id"`
-	ModelSlug          string    `json:"model_slug" db:"model_slug"`
-	UpstreamModelName  *string   `json:"upstream_model_name,omitempty" db:"upstream_model_name"`
-	Enabled            bool      `json:"enabled" db:"enabled"`
-	Priority           int       `json:"priority" db:"priority"`
-	Config             *string   `json:"config,omitempty" db:"config"`
-	CreatedAt          time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at" db:"updated_at"`
+	ID                int64     `json:"id" gorm:"primaryKey;autoIncrement"`
+	ProviderID        int64     `json:"provider_id" gorm:"not null;index"`
+	ModelSlug         string    `json:"model_slug" gorm:"not null;size:100;index"`
+	UpstreamModelName *string   `json:"upstream_model_name,omitempty" gorm:"size:100"`
+	Enabled           bool      `json:"enabled" gorm:"not null;default:true;index"`
+	Priority          int       `json:"priority" gorm:"not null;default:1"`
+	Config            *string   `json:"config,omitempty" gorm:"type:text"`
+	CreatedAt         time.Time `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt         time.Time `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// TableName 指定表名
+func (ProviderModelSupport) TableName() string {
+	return "provider_model_support"
 }
 
 // ProviderModelConfig 提供商模型配置
@@ -73,18 +78,18 @@ func (pms *ProviderModelSupport) SetConfig(config *ProviderModelConfig) error {
 
 // ModelSupportInfo 模型支持信息（用于查询结果）
 type ModelSupportInfo struct {
-	Provider           *Provider              `json:"provider"`
-	ModelSlug          string                 `json:"model_slug"`
-	UpstreamModelName  string                 `json:"upstream_model_name"`
-	Priority           int                    `json:"priority"`
-	Enabled            bool                   `json:"enabled"`
-	Config             *ProviderModelConfig   `json:"config,omitempty"`
-	Support            *ProviderModelSupport  `json:"support"`
+	Provider          *Provider             `json:"provider"`
+	ModelSlug         string                `json:"model_slug"`
+	UpstreamModelName string                `json:"upstream_model_name"`
+	Priority          int                   `json:"priority"`
+	Enabled           bool                  `json:"enabled"`
+	Config            *ProviderModelConfig  `json:"config,omitempty"`
+	Support           *ProviderModelSupport `json:"support"`
 }
 
 // IsAvailable 检查模型支持是否可用
 func (msi *ModelSupportInfo) IsAvailable() bool {
-	return msi.Enabled && 
-		   msi.Provider != nil && 
-		   msi.Provider.IsAvailable()
+	return msi.Enabled &&
+		msi.Provider != nil &&
+		msi.Provider.IsAvailable()
 }

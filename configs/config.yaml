@@ -8,8 +8,11 @@ server:
   idle_timeout: 60s
 
 database:
-  driver: "sqlite"
-  dsn: "./data/gateway.db"
+  # 数据库驱动: sqlite 或 postgres
+  driver: "postgres"
+  # PostgreSQL连接字符串
+  dsn: "host=47.76.73.118 port=5432 user=proxy password=pPhnbrlIKfYA dbname=ai sslmode=disable"
+  # 连接池配置
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: 300s

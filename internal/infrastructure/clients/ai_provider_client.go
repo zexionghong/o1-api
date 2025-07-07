@@ -2,6 +2,7 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -155,14 +156,38 @@ func (c *aiProviderClientImpl) SendRequest(ctx context.Context, provider *entiti
 	}
 
 	// 发送请求
+	fmt.Println("-------------------")
+	fmt.Println("URL:", url)
+	fmt.Println("Request struct:", request)
+
+	// 序列化请求体查看实际JSON
+	if jsonBytes, err := json.Marshal(request); err == nil {
+		fmt.Println("Request JSON:", string(jsonBytes))
+	}
+
+	if provider.APIKeyEncrypted != nil {
+		fmt.Printf("API Key: %s\n", *provider.APIKeyEncrypted)
+	} else {
+		fmt.Println("API Key: nil")
+	}
+
+	for k, v := range headers {
+		fmt.Printf("%s: %s\n", k, v)
+	}
+	fmt.Println("-------------------")
 	resp, err := c.httpClient.Post(ctx, url, request, headers)
 	if err != nil {
+		fmt.Println("------------")
+		fmt.Println(resp)
+		fmt.Println("------------")
 		return nil, fmt.Errorf("failed to send request to provider %s: %w", provider.Name, err)
 	}
 
 	// 解析响应
 	var aiResp AIResponse
+
 	if err := resp.UnmarshalJSON(&aiResp); err != nil {
+
 		return nil, fmt.Errorf("failed to unmarshal response from provider %s: %w", provider.Name, err)
 	}
 

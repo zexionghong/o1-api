@@ -15,15 +15,20 @@ const (
 
 // User 用户实体
 type User struct {
-	ID           int64      `json:"id" db:"id"`
-	Username     string     `json:"username" db:"username"`
-	Email        string     `json:"email" db:"email"`
-	PasswordHash *string    `json:"-" db:"password_hash"` // 密码哈希，不在JSON中返回
-	FullName     *string    `json:"full_name,omitempty" db:"full_name"`
-	Status       UserStatus `json:"status" db:"status"`
-	Balance      float64    `json:"balance" db:"balance"`
-	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
+	ID           int64      `json:"id" gorm:"primaryKey;autoIncrement"`
+	Username     string     `json:"username" gorm:"uniqueIndex;not null;size:100"`
+	Email        string     `json:"email" gorm:"uniqueIndex;not null;size:255"`
+	PasswordHash *string    `json:"-" gorm:"size:255"` // 密码哈希，不在JSON中返回
+	FullName     *string    `json:"full_name,omitempty" gorm:"size:255"`
+	Status       UserStatus `json:"status" gorm:"not null;default:active;size:20"`
+	Balance      float64    `json:"balance" gorm:"type:numeric(15,6);not null;default:0"`
+	CreatedAt    time.Time  `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt    time.Time  `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// TableName 指定表名
+func (User) TableName() string {
+	return "users"
 }
 
 // IsActive 检查用户是否处于活跃状态

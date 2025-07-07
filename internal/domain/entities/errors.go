@@ -49,10 +49,24 @@ var (
 
 // 配额相关错误
 var (
-	ErrQuotaExceeded     = errors.New("quota exceeded")
-	ErrRateLimitExceeded = errors.New("rate limit exceeded")
-	ErrQuotaNotFound     = errors.New("quota not found")
-	ErrInvalidQuotaType  = errors.New("invalid quota type")
+	ErrQuotaExceeded        = errors.New("quota exceeded")
+	ErrRateLimitExceeded    = errors.New("rate limit exceeded")
+	ErrQuotaNotFound        = errors.New("quota not found")
+	ErrQuotaUsageNotFound   = errors.New("quota usage not found")
+	ErrInvalidQuotaType     = errors.New("invalid quota type")
+	ErrModelPricingNotFound = errors.New("model pricing not found")
+)
+
+// 使用日志相关错误
+var (
+	ErrUsageLogNotFound      = errors.New("usage log not found")
+	ErrBillingRecordNotFound = errors.New("billing record not found")
+)
+
+// 工具相关错误
+var (
+	ErrToolNotFound         = errors.New("tool not found")
+	ErrToolInstanceNotFound = errors.New("tool instance not found")
 )
 
 // 请求相关错误

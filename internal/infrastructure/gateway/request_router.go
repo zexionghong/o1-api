@@ -247,6 +247,8 @@ func (r *requestRouterImpl) sendRequest(ctx context.Context, provider *entities.
 		timeout = provider.GetTimeout()
 	}
 
+	fmt.Printf("DEBUG: Provider timeout_seconds=%d, calculated timeout=%v\n", provider.TimeoutSeconds, timeout)
+
 	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

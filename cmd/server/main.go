@@ -43,17 +43,32 @@ func main() {
 	log.Info("Starting AI API Gateway")
 	log.WithField("config", configPath).Info("Configuration loaded")
 
-	// 初始化数据库连接
-	dbConn, err := database.NewConnection(&cfg.Database)
-	if err != nil {
-		log.WithField("error", err.Error()).Fatal("Failed to connect to database")
+	// 初始化GORM数据库连接
+	gormConfig := database.GormConfig{
+		Host:     "47.76.73.118",
+		Port:     5432,
+		User:     "proxy",
+		Password: "pPhnbrlIKfYA",
+		DBName:   "ai",
+		SSLMode:  "disable",
+		TimeZone: "UTC",
 	}
-	defer dbConn.Close()
 
-	log.Info("Database connection established")
+	gormDB, err := database.NewGormDB(gormConfig)
+	if err != nil {
+		log.WithField("error", err.Error()).Fatal("Failed to connect to PostgreSQL with GORM")
+	}
 
-	// 创建仓储工厂
-	repoFactory := repositories.NewRepositoryFactory(dbConn)
+	// 跳过自动迁移，因为我们使用手动创建的PostgreSQL表结构
+	// 只进行健康检查
+	if err := database.HealthCheck(gormDB); err != nil {
+		log.WithField("error", err.Error()).Fatal("Database health check failed")
+	}
+
+	log.Info("PostgreSQL connection established with GORM")
+
+	// 创建仓储工厂（全部使用GORM）
+	repoFactory := repositories.NewRepositoryFactory(gormDB)
 
 	// 创建Redis工厂（可选）
 	var redisFactory *redis.RedisFactory

@@ -25,17 +25,22 @@ type APIKeyPermissions struct {
 
 // APIKey API密钥实体
 type APIKey struct {
-	ID          int64              `json:"id" db:"id"`
-	UserID      int64              `json:"user_id" db:"user_id"`
-	Key         string             `json:"key" db:"key"` // 直接存储完整的API Key
-	KeyPrefix   string             `json:"key_prefix" db:"key_prefix"`
-	Name        *string            `json:"name,omitempty" db:"name"`
-	Status      APIKeyStatus       `json:"status" db:"status"`
-	Permissions *APIKeyPermissions `json:"permissions,omitempty" db:"permissions"`
-	ExpiresAt   *time.Time         `json:"expires_at,omitempty" db:"expires_at"`
-	LastUsedAt  *time.Time         `json:"last_used_at,omitempty" db:"last_used_at"`
-	CreatedAt   time.Time          `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time          `json:"updated_at" db:"updated_at"`
+	ID          int64              `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID      int64              `json:"user_id" gorm:"column:user_id;not null;index"`
+	Key         string             `json:"key" gorm:"column:key;uniqueIndex;not null;size:255"` // 直接存储完整的API Key
+	KeyPrefix   string             `json:"key_prefix" gorm:"column:key_prefix;not null;size:20;index"`
+	Name        *string            `json:"name,omitempty" gorm:"size:100"`
+	Status      APIKeyStatus       `json:"status" gorm:"not null;default:active;size:20;index"`
+	Permissions *APIKeyPermissions `json:"permissions,omitempty" gorm:"type:jsonb"`
+	ExpiresAt   *time.Time         `json:"expires_at,omitempty"`
+	LastUsedAt  *time.Time         `json:"last_used_at,omitempty"`
+	CreatedAt   time.Time          `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt   time.Time          `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// TableName 指定表名
+func (APIKey) TableName() string {
+	return "api_keys"
 }
 
 // IsActive 检查API密钥是否处于活跃状态

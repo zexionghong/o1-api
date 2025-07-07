@@ -34,15 +34,20 @@ const (
 
 // Quota 配额设置实体
 type Quota struct {
-	ID         int64        `json:"id" db:"id"`
-	APIKeyID   int64        `json:"api_key_id" db:"api_key_id"`
-	QuotaType  QuotaType    `json:"quota_type" db:"quota_type"`
-	Period     *QuotaPeriod `json:"period,omitempty" db:"period"` // NULL表示总限额
-	LimitValue float64      `json:"limit_value" db:"limit_value"`
-	ResetTime  *string      `json:"reset_time,omitempty" db:"reset_time"` // HH:MM格式
-	Status     QuotaStatus  `json:"status" db:"status"`
-	CreatedAt  time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time    `json:"updated_at" db:"updated_at"`
+	ID         int64        `json:"id" gorm:"primaryKey;autoIncrement"`
+	APIKeyID   int64        `json:"api_key_id" gorm:"not null;index"`
+	QuotaType  QuotaType    `json:"quota_type" gorm:"not null;size:20"`
+	Period     *QuotaPeriod `json:"period,omitempty" gorm:"size:20"` // NULL表示总限额
+	LimitValue float64      `json:"limit_value" gorm:"type:numeric(15,6);not null"`
+	ResetTime  *string      `json:"reset_time,omitempty" gorm:"size:10"` // HH:MM格式
+	Status     QuotaStatus  `json:"status" gorm:"not null;default:active;size:20;index"`
+	CreatedAt  time.Time    `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt  time.Time    `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// TableName 指定表名
+func (Quota) TableName() string {
+	return "quotas"
 }
 
 // IsActive 检查配额是否处于活跃状态
@@ -146,14 +151,19 @@ func (q *Quota) getResetTime() (hour, minute int) {
 
 // QuotaUsage 配额使用情况实体
 type QuotaUsage struct {
-	ID          int64      `json:"id" db:"id"`
-	APIKeyID    int64      `json:"api_key_id" db:"api_key_id"`
-	QuotaID     int64      `json:"quota_id" db:"quota_id"`
-	PeriodStart *time.Time `json:"period_start,omitempty" db:"period_start"` // 总限额时为NULL
-	PeriodEnd   *time.Time `json:"period_end,omitempty" db:"period_end"`     // 总限额时为NULL
-	UsedValue   float64    `json:"used_value" db:"used_value"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID          int64      `json:"id" gorm:"primaryKey;autoIncrement"`
+	APIKeyID    int64      `json:"api_key_id" gorm:"not null;index"`
+	QuotaID     int64      `json:"quota_id" gorm:"not null;index"`
+	PeriodStart *time.Time `json:"period_start,omitempty"` // 总限额时为NULL
+	PeriodEnd   *time.Time `json:"period_end,omitempty"`   // 总限额时为NULL
+	UsedValue   float64    `json:"used_value" gorm:"type:numeric(15,6);not null;default:0"`
+	CreatedAt   time.Time  `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt   time.Time  `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// TableName 指定表名
+func (QuotaUsage) TableName() string {
+	return "quota_usage"
 }
 
 // IsWithinPeriod 检查指定时间是否在周期内

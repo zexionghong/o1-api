@@ -11,22 +11,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 )
 
 // ToolService 工具服务
 type ToolService struct {
 	toolRepo   repositories.ToolRepository
 	apiKeyRepo repositories.APIKeyRepository
-	db         *sqlx.DB
+	modelRepo  repositories.ModelRepository
 }
 
 // NewToolService 创建工具服务
-func NewToolService(toolRepo repositories.ToolRepository, apiKeyRepo repositories.APIKeyRepository, db *sqlx.DB) *ToolService {
+func NewToolService(toolRepo repositories.ToolRepository, apiKeyRepo repositories.APIKeyRepository, modelRepo repositories.ModelRepository) *ToolService {
 	return &ToolService{
 		toolRepo:   toolRepo,
 		apiKeyRepo: apiKeyRepo,
-		db:         db,
+		modelRepo:  modelRepo,
 	}
 }
 
@@ -50,6 +49,7 @@ func (s *ToolService) CreateUserToolInstance(ctx context.Context, userID int64, 
 	if tool == nil {
 		return nil, fmt.Errorf("tool not found")
 	}
+	fmt.Printf("DEBUG: Tool found: %+v\n", tool)
 
 	// 验证模型是否被工具支持
 	modelSupported := false
@@ -271,75 +271,50 @@ func (s *ToolService) IncrementUsageCount(ctx context.Context, instanceID string
 
 // GetAvailableModels 获取可用模型列表
 func (s *ToolService) GetAvailableModels(ctx context.Context) ([]map[string]interface{}, error) {
-	query := `
-		SELECT id, name, display_name, model_type, status
-		FROM models
-		WHERE status = 'active' AND model_type = 'chat'
-		ORDER BY display_name
-	`
-
-	rows, err := s.db.QueryxContext(ctx, query)
+	// 获取聊天类型的活跃模型
+	models, err := s.modelRepo.GetModelsByType(ctx, entities.ModelTypeChat)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query models: %w", err)
+		return nil, fmt.Errorf("failed to get models: %w", err)
 	}
-	defer rows.Close()
 
-	var models []map[string]interface{}
-	for rows.Next() {
-		var id int64
-		var name, displayName, modelType, status string
-
-		err := rows.Scan(&id, &name, &displayName, &modelType, &status)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan model: %w", err)
+	var result []map[string]interface{}
+	for _, model := range models {
+		displayName := model.Name
+		if model.DisplayName != nil {
+			displayName = *model.DisplayName
 		}
 
-		models = append(models, map[string]interface{}{
-			"id":           id,
-			"name":         name,
+		result = append(result, map[string]interface{}{
+			"id":           model.ID,
+			"name":         model.Name,
 			"display_name": displayName,
-			"model_type":   modelType,
-			"status":       status,
+			"model_type":   model.ModelType,
+			"status":       model.Status,
 		})
 	}
 
-	return models, nil
+	return result, nil
 }
 
 // GetUserAPIKeys 获取用户API密钥列表
 func (s *ToolService) GetUserAPIKeys(ctx context.Context, userID int64) ([]map[string]interface{}, error) {
-	query := `
-		SELECT id, name, key_prefix, status
-		FROM api_keys
-		WHERE user_id = ? AND status = 'active'
-		ORDER BY created_at DESC
-	`
-
-	rows, err := s.db.QueryxContext(ctx, query, userID)
+	// 获取用户的活跃API密钥
+	apiKeys, err := s.apiKeyRepo.GetActiveKeys(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query API keys: %w", err)
+		return nil, fmt.Errorf("failed to get API keys: %w", err)
 	}
-	defer rows.Close()
 
-	var apiKeys []map[string]interface{}
-	for rows.Next() {
-		var id int64
-		var name, keyPrefix, status string
-
-		err := rows.Scan(&id, &name, &keyPrefix, &status)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan API key: %w", err)
-		}
-
-		apiKeys = append(apiKeys, map[string]interface{}{
-			"id":         id,
-			"name":       name,
-			"key_prefix": keyPrefix,
-			"status":     status,
+	var result []map[string]interface{}
+	for _, apiKey := range apiKeys {
+		result = append(result, map[string]interface{}{
+			"id":         apiKey.ID,
+			"name":       apiKey.Name,
+			"key_prefix": apiKey.KeyPrefix,
+			"status":     apiKey.Status,
 		})
 	}
 
-	return apiKeys, nil
+	return result, nil
 }
 
 // generateShareToken 生成分享token

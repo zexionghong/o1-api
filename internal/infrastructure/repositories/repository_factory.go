@@ -2,79 +2,78 @@ package repositories
 
 import (
 	"ai-api-gateway/internal/domain/repositories"
-	"ai-api-gateway/internal/infrastructure/database"
 
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 )
 
-// RepositoryFactory 仓储工厂
+// RepositoryFactory 仓储工厂（基于GORM）
 type RepositoryFactory struct {
-	dbConn *database.Connection
+	gormDB *gorm.DB
 }
 
-// NewRepositoryFactory 创建仓储工厂
-func NewRepositoryFactory(dbConn *database.Connection) *RepositoryFactory {
+// NewRepositoryFactory 创建GORM仓储工厂
+func NewRepositoryFactory(gormDB *gorm.DB) *RepositoryFactory {
 	return &RepositoryFactory{
-		dbConn: dbConn,
+		gormDB: gormDB,
 	}
 }
 
 // UserRepository 获取用户仓储
 func (f *RepositoryFactory) UserRepository() repositories.UserRepository {
-	return NewUserRepository(f.dbConn.DB())
+	return NewUserRepositoryGorm(f.gormDB)
 }
 
 // APIKeyRepository 获取API密钥仓储
 func (f *RepositoryFactory) APIKeyRepository() repositories.APIKeyRepository {
-	return NewAPIKeyRepository(f.dbConn.DB())
+	return NewAPIKeyRepositoryGorm(f.gormDB)
 }
 
 // ProviderRepository 获取提供商仓储
 func (f *RepositoryFactory) ProviderRepository() repositories.ProviderRepository {
-	return NewProviderRepository(f.dbConn.DB())
+	return NewProviderRepositoryGorm(f.gormDB)
 }
 
 // ModelRepository 获取模型仓储
 func (f *RepositoryFactory) ModelRepository() repositories.ModelRepository {
-	return NewModelRepository(f.dbConn.DB())
+	return NewModelRepositoryGorm(f.gormDB)
 }
 
 // ModelPricingRepository 获取模型定价仓储
 func (f *RepositoryFactory) ModelPricingRepository() repositories.ModelPricingRepository {
-	return NewModelPricingRepository(f.dbConn.DB())
+	return NewModelPricingRepositoryGorm(f.gormDB)
 }
 
 // ProviderModelSupportRepository 获取提供商模型支持仓储
 func (f *RepositoryFactory) ProviderModelSupportRepository() repositories.ProviderModelSupportRepository {
-	return NewProviderModelSupportRepository(f.dbConn.DB())
+	return NewProviderModelSupportRepositoryGorm(f.gormDB)
 }
 
 // QuotaRepository 获取配额仓储
 func (f *RepositoryFactory) QuotaRepository() repositories.QuotaRepository {
-	return NewQuotaRepository(f.dbConn.DB())
+	return NewQuotaRepositoryGorm(f.gormDB)
 }
 
 // QuotaUsageRepository 获取配额使用仓储
 func (f *RepositoryFactory) QuotaUsageRepository() repositories.QuotaUsageRepository {
-	return NewQuotaUsageRepository(f.dbConn.DB())
+	return NewQuotaUsageRepositoryGorm(f.gormDB)
 }
 
 // UsageLogRepository 获取使用日志仓储
 func (f *RepositoryFactory) UsageLogRepository() repositories.UsageLogRepository {
-	return NewUsageLogRepository(f.dbConn.DB())
+	return NewUsageLogRepositoryGorm(f.gormDB)
 }
 
 // BillingRecordRepository 获取计费记录仓储
 func (f *RepositoryFactory) BillingRecordRepository() repositories.BillingRecordRepository {
-	return NewBillingRecordRepository(f.dbConn.DB())
+	return NewBillingRecordRepositoryGorm(f.gormDB)
 }
 
 // ToolRepository 获取工具仓储
 func (f *RepositoryFactory) ToolRepository() repositories.ToolRepository {
-	return NewToolRepository(f.dbConn.DBX())
+	return NewToolRepositoryGorm(f.gormDB)
 }
 
-// DB 获取数据库连接
-func (f *RepositoryFactory) DB() *sqlx.DB {
-	return f.dbConn.DBX()
+// GormDB 获取GORM数据库连接
+func (f *RepositoryFactory) GormDB() *gorm.DB {
+	return f.gormDB
 }

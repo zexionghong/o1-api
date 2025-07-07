@@ -409,7 +409,7 @@ func (s *quotaServiceImpl) CreateQuota(ctx context.Context, apiKeyID int64, quot
 		return nil, fmt.Errorf("quota already exists for API key %d with type %s and period %v", apiKeyID, quotaType, period)
 	}
 	// 如果错误不是"未找到"，则返回错误
-	if err != nil && err != entities.ErrUserNotFound {
+	if err != nil && err != entities.ErrQuotaNotFound {
 		return nil, fmt.Errorf("failed to check existing quota: %w", err)
 	}
 
