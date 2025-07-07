@@ -4,15 +4,21 @@ import (
 	"fmt"
 	"time"
 
-	"ai-api-gateway/internal/infrastructure/database"
-
 	"github.com/spf13/viper"
 )
+
+type dbConfig struct {
+	Driver          string        `mapstructure:"driver"`
+	DSN             string        `mapstructure:"dsn"`
+	MaxOpenConns    int           `mapstructure:"max_open_conns"`
+	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
+}
 
 // Config 应用配置
 type Config struct {
 	Server      ServerConfig      `mapstructure:"server"`
-	Database    database.Config   `mapstructure:"database"`
+	Database    dbConfig          `mapstructure:"database"`
 	Logging     LoggingConfig     `mapstructure:"logging"`
 	RateLimit   RateLimitConfig   `mapstructure:"rate_limiting"`
 	Providers   ProvidersConfig   `mapstructure:"providers"`

@@ -1,6 +1,6 @@
 # AI API Gateway Makefile
 
-.PHONY: help build run test clean migrate-up migrate-down docker-build docker-run
+.PHONY: help build run test clean docker-build docker-run
 
 # Default target
 help:
@@ -9,8 +9,6 @@ help:
 	@echo "  run          - Run the application"
 	@echo "  test         - Run tests"
 	@echo "  clean        - Clean build artifacts"
-	@echo "  migrate-up   - Run database migrations up"
-	@echo "  migrate-down - Run database migrations down"
 	@echo "  docker-build - Build Docker image"
 	@echo "  docker-run   - Run Docker container"
 
@@ -18,7 +16,6 @@ help:
 build:
 	@echo "Building AI API Gateway..."
 	@go build -o bin/server cmd/server/main.go
-	@go build -o bin/migrate cmd/migrate/main.go
 
 # Run the application
 run:
@@ -36,15 +33,7 @@ clean:
 	@rm -rf bin/
 	@rm -rf data/
 
-# Run database migrations up
-migrate-up:
-	@echo "Running migrations up..."
-	@go run cmd/migrate/main.go up
 
-# Run database migrations down
-migrate-down:
-	@echo "Running migrations down..."
-	@go run cmd/migrate/main.go down
 
 # Build Docker image
 docker-build:
