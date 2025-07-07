@@ -40,11 +40,12 @@ interface ApiKeyTableRowProps {
   onViewDetails: () => void;
   onStatusChange: (status: 'active' | 'inactive') => void;
   onDeleteRow: () => void;
+  onConfigureQuota: () => void;
 }
 
 // ----------------------------------------------------------------------
 
-export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onStatusChange, onDeleteRow }: ApiKeyTableRowProps) {
+export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onStatusChange, onDeleteRow, onConfigureQuota }: ApiKeyTableRowProps) {
   const { t } = useTranslation();
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState(false);
@@ -151,6 +152,30 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
           />
         </TableCell>
 
+        <TableCell align="center">
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Chip
+              label="配额管理"
+              size="small"
+              variant="outlined"
+              color="primary"
+              onClick={onConfigureQuota}
+              clickable
+              icon={<Iconify icon="solar:pen-bold" width={14} />}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '& .MuiChip-icon': {
+                    color: 'inherit'
+                  }
+                }
+              }}
+            />
+          </Box>
+        </TableCell>
+
         <TableCell>{formatDate(row.last_used_at)}</TableCell>
 
         <TableCell>{formatDate(row.created_at)}</TableCell>
@@ -204,7 +229,7 @@ export function ApiKeyTableRow({ row, selected, onSelectRow, onViewDetails, onSt
             sx={{ color: row.status === 'active' ? 'warning.main' : 'success.main' }}
           >
             <Iconify icon={row.status === 'active' ? 'solar:pause-bold' : 'solar:play-bold'} />
-            {row.status === 'active' ? 'Disable' : 'Enable'}
+            {row.status === 'active' ? t('common.disable') : t('common.enable')}
           </MenuItem>
 
           <MenuItem

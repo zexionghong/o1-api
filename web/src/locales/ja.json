@@ -29,7 +29,9 @@
     "updated_at": "更新日時",
     "page": "ページ",
     "total": "合計",
-    "items": "件"
+    "items": "件",
+    "enable": "有効化",
+    "disable": "無効化"
   },
   "profile": {
     "title": "プロフィール",
@@ -262,7 +264,11 @@
     "usage_instruction_1": "リクエストヘッダーにこのAPIキーを含めてください",
     "usage_instruction_2": "APIキーを安全に保管し、公開で共有しないでください",
     "usage_instruction_3": "APIキーページからこのキーを管理できます（有効化/無効化/削除）",
-    "saved_api_key": "APIキーを保存しました"
+    "saved_api_key": "APIキーを保存しました",
+    "basic_information": "基本情報",
+    "usage_statistics": "使用統計",
+    "total_tokens": "総トークン数",
+    "total_cost": "総コスト"
   },
   "usage_logs": {
     "title": "使用ログ",
@@ -327,6 +333,44 @@
       "short": "YYYY/MM/DD",
       "long": "YYYY年MM月DD日",
       "datetime": "YYYY/MM/DD HH:mm:ss"
+    }
+  },
+  "quota": {
+    "title": "クォータ設定",
+    "current_quotas": "現在のクォータ",
+    "add_quota": "クォータを追加",
+    "add_new_quota": "新しいクォータを追加",
+    "quota_type": "クォータタイプ",
+    "period": "期間",
+    "limit_value": "制限値",
+    "used_value": "使用済み",
+    "remaining": "残り",
+    "usage_rate": "使用率",
+    "no_quotas": "クォータ設定がありません",
+    "quota_types": {
+      "requests": "リクエスト数",
+      "tokens": "トークン数",
+      "cost": "コスト"
+    },
+    "periods": {
+      "total": "総制限",
+      "minute": "毎分",
+      "hour": "毎時",
+      "day": "毎日",
+      "month": "毎月"
+    },
+    "status": {
+      "active": "有効",
+      "inactive": "無効"
+    },
+    "errors": {
+      "fetch_failed": "クォータ情報の取得に失敗しました",
+      "create_failed": "クォータの作成に失敗しました",
+      "delete_failed": "クォータの削除に失敗しました",
+      "duplicate_quota": "クォータが既に存在します。タイプと期間の組み合わせごとに1つのクォータのみ設定できます"
+    },
+    "helper_text": {
+      "total_quota": "総制限：時間制限なし"
     }
   }
 }

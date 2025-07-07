@@ -115,7 +115,7 @@ type gatewayServiceImpl struct {
 	router          RequestRouter
 	userService     services.UserService
 	apiKeyService   services.APIKeyService
-	quotaService    services.QuotaService
+	quotaService    interface{}
 	billingService  services.BillingService
 	usageLogService services.UsageLogService
 	billingRepo     repositories.BillingRecordRepository
@@ -129,7 +129,7 @@ func NewGatewayService(
 	router RequestRouter,
 	userService services.UserService,
 	apiKeyService services.APIKeyService,
-	quotaService services.QuotaService,
+	quotaService interface{},
 	billingService services.BillingService,
 	usageLogService services.UsageLogService,
 	billingRepo repositories.BillingRecordRepository,

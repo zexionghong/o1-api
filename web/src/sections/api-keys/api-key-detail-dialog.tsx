@@ -27,6 +27,8 @@ import api from 'src/services/api';
 import { Iconify } from 'src/components/iconify';
 import { DateRangePicker } from 'src/components/date-range-picker';
 
+
+
 // ----------------------------------------------------------------------
 
 interface ApiKey {
@@ -329,19 +331,19 @@ export function ApiKeyDetailDialog({
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Basic Information
+                  {t('api_keys.basic_information')}
                 </Typography>
                 <Box sx={{ display: 'grid', gap: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography color="text.secondary">Name:</Typography>
+                    <Typography color="text.secondary">{t('common.name')}:</Typography>
                     <Typography>{apiKey.name}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography color="text.secondary">Key:</Typography>
+                    <Typography color="text.secondary">{t('api_keys.key')}:</Typography>
                     <Typography sx={{ fontFamily: 'monospace' }}>{apiKey.key_prefix}••••••••••••</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography color="text.secondary">Status:</Typography>
+                    <Typography color="text.secondary">{t('common.status')}:</Typography>
                     <Chip
                       label={apiKey.status}
                       color={getStatusColor(apiKey.status) as any}
@@ -349,13 +351,13 @@ export function ApiKeyDetailDialog({
                     />
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography color="text.secondary">Created:</Typography>
+                    <Typography color="text.secondary">{t('common.created_at')}:</Typography>
                     <Typography>{formatDate(apiKey.created_at)}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography color="text.secondary">Last Used:</Typography>
+                    <Typography color="text.secondary">{t('api_keys.last_used')}:</Typography>
                     <Typography>
-                      {apiKey.last_used_at ? formatDate(apiKey.last_used_at) : 'Never'}
+                      {apiKey.last_used_at ? formatDate(apiKey.last_used_at) : t('api_keys.never')}
                     </Typography>
                   </Box>
                 </Box>
@@ -366,20 +368,20 @@ export function ApiKeyDetailDialog({
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Usage Statistics
+                  {t('api_keys.usage_statistics')}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
                     <Typography variant="h4" color="primary">
                       {totalTokens.toLocaleString()}
                     </Typography>
-                    <Typography color="text.secondary">Total Tokens</Typography>
+                    <Typography color="text.secondary">{t('api_keys.total_tokens')}</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
                     <Typography variant="h4" color="error">
                       {formatCurrency(totalCost)}
                     </Typography>
-                    <Typography color="text.secondary">Total Cost</Typography>
+                    <Typography color="text.secondary">{t('api_keys.total_cost')}</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -524,23 +526,25 @@ export function ApiKeyDetailDialog({
             </>
           )}
         </TabPanel>
+
+
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.close')}</Button>
         <Button
           onClick={handleStatusToggle}
           color={apiKey.status === 'active' ? 'warning' : 'success'}
           startIcon={<Iconify icon={apiKey.status === 'active' ? 'solar:pause-bold' : 'solar:play-bold'} />}
         >
-          {apiKey.status === 'active' ? 'Disable' : 'Enable'}
+          {apiKey.status === 'active' ? t('common.disable') : t('common.enable')}
         </Button>
         <Button
           onClick={handleDelete}
           color="error"
           startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
         >
-          Delete
+          {t('common.delete')}
         </Button>
       </DialogActions>
     </Dialog>

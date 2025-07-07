@@ -26,7 +26,7 @@ func NewQuotaRepository(db *sql.DB) repositories.QuotaRepository {
 func (r *quotaRepositoryImpl) Create(ctx context.Context, quota *entities.Quota) error {
 	query := `
 		INSERT INTO quotas (
-			user_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+			api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
@@ -35,7 +35,7 @@ func (r *quotaRepositoryImpl) Create(ctx context.Context, quota *entities.Quota)
 	quota.UpdatedAt = now
 
 	result, err := r.db.ExecContext(ctx, query,
-		quota.UserID,
+		quota.APIKeyID,
 		quota.QuotaType,
 		quota.Period,
 		quota.LimitValue,
@@ -60,14 +60,14 @@ func (r *quotaRepositoryImpl) Create(ctx context.Context, quota *entities.Quota)
 // GetByID 根据ID获取配额
 func (r *quotaRepositoryImpl) GetByID(ctx context.Context, id int64) (*entities.Quota, error) {
 	query := `
-		SELECT id, user_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+		SELECT id, api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
 		FROM quotas WHERE id = ?
 	`
 
 	quota := &entities.Quota{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&quota.ID,
-		&quota.UserID,
+		&quota.APIKeyID,
 		&quota.QuotaType,
 		&quota.Period,
 		&quota.LimitValue,
@@ -87,18 +87,18 @@ func (r *quotaRepositoryImpl) GetByID(ctx context.Context, id int64) (*entities.
 	return quota, nil
 }
 
-// GetByUserID 根据用户ID获取配额列表
-func (r *quotaRepositoryImpl) GetByUserID(ctx context.Context, userID int64) ([]*entities.Quota, error) {
+// GetByAPIKeyID 根据API Key ID获取配额列表
+func (r *quotaRepositoryImpl) GetByAPIKeyID(ctx context.Context, apiKeyID int64) ([]*entities.Quota, error) {
 	query := `
-		SELECT id, user_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+		SELECT id, api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
 		FROM quotas
-		WHERE user_id = ?
+		WHERE api_key_id = ?
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.QueryContext(ctx, query, apiKeyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get quotas by user id: %w", err)
+		return nil, fmt.Errorf("failed to get quotas by api key id: %w", err)
 	}
 	defer rows.Close()
 
@@ -107,7 +107,7 @@ func (r *quotaRepositoryImpl) GetByUserID(ctx context.Context, userID int64) ([]
 		quota := &entities.Quota{}
 		err := rows.Scan(
 			&quota.ID,
-			&quota.UserID,
+			&quota.APIKeyID,
 			&quota.QuotaType,
 			&quota.Period,
 			&quota.LimitValue,
@@ -129,20 +129,37 @@ func (r *quotaRepositoryImpl) GetByUserID(ctx context.Context, userID int64) ([]
 	return quotas, nil
 }
 
-// GetByUserAndType 根据用户ID和配额类型获取配额
-func (r *quotaRepositoryImpl) GetByUserAndType(ctx context.Context, userID int64, quotaType entities.QuotaType, period entities.QuotaPeriod) (*entities.Quota, error) {
-	query := `
-		SELECT id, user_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
-		FROM quotas
-		WHERE user_id = ? AND quota_type = ? AND period = ? AND status = 'active'
-		ORDER BY created_at DESC
-		LIMIT 1
-	`
+// GetByAPIKeyAndType 根据API Key ID和配额类型获取配额
+func (r *quotaRepositoryImpl) GetByAPIKeyAndType(ctx context.Context, apiKeyID int64, quotaType entities.QuotaType, period *entities.QuotaPeriod) (*entities.Quota, error) {
+	var query string
+	var args []interface{}
+
+	if period == nil {
+		// 查询总限额
+		query = `
+			SELECT id, api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+			FROM quotas
+			WHERE api_key_id = ? AND quota_type = ? AND period IS NULL AND status = 'active'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`
+		args = []interface{}{apiKeyID, quotaType}
+	} else {
+		// 查询周期限额
+		query = `
+			SELECT id, api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+			FROM quotas
+			WHERE api_key_id = ? AND quota_type = ? AND period = ? AND status = 'active'
+			ORDER BY created_at DESC
+			LIMIT 1
+		`
+		args = []interface{}{apiKeyID, quotaType, *period}
+	}
 
 	quota := &entities.Quota{}
-	err := r.db.QueryRowContext(ctx, query, userID, quotaType, period).Scan(
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&quota.ID,
-		&quota.UserID,
+		&quota.APIKeyID,
 		&quota.QuotaType,
 		&quota.Period,
 		&quota.LimitValue,
@@ -156,7 +173,7 @@ func (r *quotaRepositoryImpl) GetByUserAndType(ctx context.Context, userID int64
 		if err == sql.ErrNoRows {
 			return nil, entities.ErrUserNotFound
 		}
-		return nil, fmt.Errorf("failed to get quota by user id and type: %w", err)
+		return nil, fmt.Errorf("failed to get quota by api key and type: %w", err)
 	}
 
 	return quota, nil
@@ -221,8 +238,8 @@ func (r *quotaRepositoryImpl) Delete(ctx context.Context, id int64) error {
 // List 获取配额列表
 func (r *quotaRepositoryImpl) List(ctx context.Context, offset, limit int) ([]*entities.Quota, error) {
 	query := `
-		SELECT id, user_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
-		FROM quotas 
+		SELECT id, api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+		FROM quotas
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
 	`
@@ -238,7 +255,7 @@ func (r *quotaRepositoryImpl) List(ctx context.Context, offset, limit int) ([]*e
 		quota := &entities.Quota{}
 		err := rows.Scan(
 			&quota.ID,
-			&quota.UserID,
+			&quota.APIKeyID,
 			&quota.QuotaType,
 			&quota.Period,
 			&quota.LimitValue,
@@ -274,15 +291,15 @@ func (r *quotaRepositoryImpl) Count(ctx context.Context) (int64, error) {
 }
 
 // GetActiveQuotas 获取活跃的配额
-func (r *quotaRepositoryImpl) GetActiveQuotas(ctx context.Context, userID int64) ([]*entities.Quota, error) {
+func (r *quotaRepositoryImpl) GetActiveQuotas(ctx context.Context, apiKeyID int64) ([]*entities.Quota, error) {
 	query := `
-		SELECT id, user_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
-		FROM quotas 
-		WHERE user_id = ? AND status = 'active'
+		SELECT id, api_key_id, quota_type, period, limit_value, reset_time, status, created_at, updated_at
+		FROM quotas
+		WHERE api_key_id = ? AND status = 'active'
 		ORDER BY quota_type, period
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.QueryContext(ctx, query, apiKeyID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active quotas: %w", err)
 	}
@@ -293,7 +310,7 @@ func (r *quotaRepositoryImpl) GetActiveQuotas(ctx context.Context, userID int64)
 		quota := &entities.Quota{}
 		err := rows.Scan(
 			&quota.ID,
-			&quota.UserID,
+			&quota.APIKeyID,
 			&quota.QuotaType,
 			&quota.Period,
 			&quota.LimitValue,

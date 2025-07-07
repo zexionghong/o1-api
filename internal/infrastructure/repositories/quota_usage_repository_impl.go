@@ -26,7 +26,7 @@ func NewQuotaUsageRepository(db *sql.DB) repositories.QuotaUsageRepository {
 func (r *quotaUsageRepositoryImpl) Create(ctx context.Context, usage *entities.QuotaUsage) error {
 	query := `
 		INSERT INTO quota_usage (
-			user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+			api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
@@ -35,7 +35,7 @@ func (r *quotaUsageRepositoryImpl) Create(ctx context.Context, usage *entities.Q
 	usage.UpdatedAt = now
 
 	result, err := r.db.ExecContext(ctx, query,
-		usage.UserID,
+		usage.APIKeyID,
 		usage.QuotaID,
 		usage.PeriodStart,
 		usage.PeriodEnd,
@@ -59,14 +59,14 @@ func (r *quotaUsageRepositoryImpl) Create(ctx context.Context, usage *entities.Q
 // GetByID 根据ID获取配额使用记录
 func (r *quotaUsageRepositoryImpl) GetByID(ctx context.Context, id int64) (*entities.QuotaUsage, error) {
 	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+		SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
 		FROM quota_usage WHERE id = ?
 	`
 
 	usage := &entities.QuotaUsage{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&usage.ID,
-		&usage.UserID,
+		&usage.APIKeyID,
 		&usage.QuotaID,
 		&usage.PeriodStart,
 		&usage.PeriodEnd,
@@ -106,7 +106,7 @@ func (r *quotaUsageRepositoryImpl) GetByQuotaIDAndPeriod(ctx context.Context, qu
 		usage := &entities.QuotaUsage{}
 		err := rows.Scan(
 			&usage.ID,
-			&usage.UserID,
+			&usage.APIKeyID,
 			&usage.QuotaID,
 			&usage.PeriodStart,
 			&usage.PeriodEnd,
@@ -128,19 +128,36 @@ func (r *quotaUsageRepositoryImpl) GetByQuotaIDAndPeriod(ctx context.Context, qu
 }
 
 // GetByQuotaAndPeriod 根据配额ID和周期获取使用记录（单个记录）
-func (r *quotaUsageRepositoryImpl) GetByQuotaAndPeriod(ctx context.Context, userID, quotaID int64, periodStart, periodEnd time.Time) (*entities.QuotaUsage, error) {
-	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
-		FROM quota_usage
-		WHERE user_id = ? AND quota_id = ? AND period_start = ? AND period_end = ?
-		ORDER BY created_at DESC
-		LIMIT 1
-	`
+func (r *quotaUsageRepositoryImpl) GetByQuotaAndPeriod(ctx context.Context, apiKeyID, quotaID int64, periodStart, periodEnd *time.Time) (*entities.QuotaUsage, error) {
+	var query string
+	var args []interface{}
+
+	if periodStart == nil || periodEnd == nil {
+		// 总限额查询
+		query = `
+			SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+			FROM quota_usage
+			WHERE api_key_id = ? AND quota_id = ? AND period_start IS NULL AND period_end IS NULL
+			ORDER BY created_at DESC
+			LIMIT 1
+		`
+		args = []interface{}{apiKeyID, quotaID}
+	} else {
+		// 周期限额查询
+		query = `
+			SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+			FROM quota_usage
+			WHERE api_key_id = ? AND quota_id = ? AND period_start = ? AND period_end = ?
+			ORDER BY created_at DESC
+			LIMIT 1
+		`
+		args = []interface{}{apiKeyID, quotaID, *periodStart, *periodEnd}
+	}
 
 	usage := &entities.QuotaUsage{}
-	err := r.db.QueryRowContext(ctx, query, userID, quotaID, periodStart, periodEnd).Scan(
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&usage.ID,
-		&usage.UserID,
+		&usage.APIKeyID,
 		&usage.QuotaID,
 		&usage.PeriodStart,
 		&usage.PeriodEnd,
@@ -160,19 +177,19 @@ func (r *quotaUsageRepositoryImpl) GetByQuotaAndPeriod(ctx context.Context, user
 }
 
 // GetCurrentUsage 获取当前周期的使用情况
-func (r *quotaUsageRepositoryImpl) GetCurrentUsage(ctx context.Context, userID int64, quotaID int64, at time.Time) (*entities.QuotaUsage, error) {
+func (r *quotaUsageRepositoryImpl) GetCurrentUsage(ctx context.Context, apiKeyID int64, quotaID int64, at time.Time) (*entities.QuotaUsage, error) {
 	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+		SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
 		FROM quota_usage
-		WHERE user_id = ? AND quota_id = ? AND period_start <= ? AND period_end > ?
+		WHERE api_key_id = ? AND quota_id = ? AND period_start <= ? AND period_end > ?
 		ORDER BY created_at DESC
 		LIMIT 1
 	`
 
 	usage := &entities.QuotaUsage{}
-	err := r.db.QueryRowContext(ctx, query, userID, quotaID, at, at).Scan(
+	err := r.db.QueryRowContext(ctx, query, apiKeyID, quotaID, at, at).Scan(
 		&usage.ID,
-		&usage.UserID,
+		&usage.APIKeyID,
 		&usage.QuotaID,
 		&usage.PeriodStart,
 		&usage.PeriodEnd,
@@ -192,15 +209,29 @@ func (r *quotaUsageRepositoryImpl) GetCurrentUsage(ctx context.Context, userID i
 }
 
 // IncrementUsage 增加使用量
-func (r *quotaUsageRepositoryImpl) IncrementUsage(ctx context.Context, userID, quotaID int64, value float64, periodStart, periodEnd time.Time) error {
-	// 首先尝试更新现有记录
-	updateQuery := `
-		UPDATE quota_usage
-		SET used_value = used_value + ?, updated_at = ?
-		WHERE user_id = ? AND quota_id = ? AND period_start = ? AND period_end = ?
-	`
+func (r *quotaUsageRepositoryImpl) IncrementUsage(ctx context.Context, apiKeyID, quotaID int64, value float64, periodStart, periodEnd *time.Time) error {
+	var updateQuery string
+	var args []interface{}
 
-	result, err := r.db.ExecContext(ctx, updateQuery, value, time.Now(), userID, quotaID, periodStart, periodEnd)
+	if periodStart == nil || periodEnd == nil {
+		// 总限额更新
+		updateQuery = `
+			UPDATE quota_usage
+			SET used_value = used_value + ?, updated_at = ?
+			WHERE api_key_id = ? AND quota_id = ? AND period_start IS NULL AND period_end IS NULL
+		`
+		args = []interface{}{value, time.Now(), apiKeyID, quotaID}
+	} else {
+		// 周期限额更新
+		updateQuery = `
+			UPDATE quota_usage
+			SET used_value = used_value + ?, updated_at = ?
+			WHERE api_key_id = ? AND quota_id = ? AND period_start = ? AND period_end = ?
+		`
+		args = []interface{}{value, time.Now(), apiKeyID, quotaID, *periodStart, *periodEnd}
+	}
+
+	result, err := r.db.ExecContext(ctx, updateQuery, args...)
 	if err != nil {
 		return fmt.Errorf("failed to increment usage: %w", err)
 	}
@@ -213,7 +244,7 @@ func (r *quotaUsageRepositoryImpl) IncrementUsage(ctx context.Context, userID, q
 	// 如果没有更新任何记录，创建新记录
 	if rowsAffected == 0 {
 		usage := &entities.QuotaUsage{
-			UserID:      userID,
+			APIKeyID:    apiKeyID,
 			QuotaID:     quotaID,
 			PeriodStart: periodStart,
 			PeriodEnd:   periodEnd,
@@ -225,19 +256,19 @@ func (r *quotaUsageRepositoryImpl) IncrementUsage(ctx context.Context, userID, q
 	return nil
 }
 
-// GetUsageByUser 根据用户ID获取使用记录列表
-func (r *quotaUsageRepositoryImpl) GetUsageByUser(ctx context.Context, userID int64, offset, limit int) ([]*entities.QuotaUsage, error) {
+// GetUsageByAPIKey 根据API Key ID获取使用记录列表
+func (r *quotaUsageRepositoryImpl) GetUsageByAPIKey(ctx context.Context, apiKeyID int64, offset, limit int) ([]*entities.QuotaUsage, error) {
 	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+		SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
 		FROM quota_usage
-		WHERE user_id = ?
+		WHERE api_key_id = ?
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID, limit, offset)
+	rows, err := r.db.QueryContext(ctx, query, apiKeyID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get usage by user: %w", err)
+		return nil, fmt.Errorf("failed to get usage by api key: %w", err)
 	}
 	defer rows.Close()
 
@@ -246,7 +277,7 @@ func (r *quotaUsageRepositoryImpl) GetUsageByUser(ctx context.Context, userID in
 		usage := &entities.QuotaUsage{}
 		err := rows.Scan(
 			&usage.ID,
-			&usage.UserID,
+			&usage.APIKeyID,
 			&usage.QuotaID,
 			&usage.PeriodStart,
 			&usage.PeriodEnd,
@@ -270,7 +301,7 @@ func (r *quotaUsageRepositoryImpl) GetUsageByUser(ctx context.Context, userID in
 // GetUsageByPeriod 根据时间周期获取使用记录列表
 func (r *quotaUsageRepositoryImpl) GetUsageByPeriod(ctx context.Context, start, end time.Time, offset, limit int) ([]*entities.QuotaUsage, error) {
 	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+		SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
 		FROM quota_usage
 		WHERE period_start >= ? AND period_end <= ?
 		ORDER BY created_at DESC
@@ -288,49 +319,7 @@ func (r *quotaUsageRepositoryImpl) GetUsageByPeriod(ctx context.Context, start, 
 		usage := &entities.QuotaUsage{}
 		err := rows.Scan(
 			&usage.ID,
-			&usage.UserID,
-			&usage.QuotaID,
-			&usage.PeriodStart,
-			&usage.PeriodEnd,
-			&usage.UsedValue,
-			&usage.CreatedAt,
-			&usage.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan quota usage: %w", err)
-		}
-		usages = append(usages, usage)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to iterate quota usages: %w", err)
-	}
-
-	return usages, nil
-}
-
-// GetByUserID 根据用户ID获取配额使用记录
-func (r *quotaUsageRepositoryImpl) GetByUserID(ctx context.Context, userID int64, offset, limit int) ([]*entities.QuotaUsage, error) {
-	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
-		FROM quota_usage 
-		WHERE user_id = ?
-		ORDER BY created_at DESC
-		LIMIT ? OFFSET ?
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, userID, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get quota usage by user id: %w", err)
-	}
-	defer rows.Close()
-
-	var usages []*entities.QuotaUsage
-	for rows.Next() {
-		usage := &entities.QuotaUsage{}
-		err := rows.Scan(
-			&usage.ID,
-			&usage.UserID,
+			&usage.APIKeyID,
 			&usage.QuotaID,
 			&usage.PeriodStart,
 			&usage.PeriodEnd,
@@ -406,8 +395,8 @@ func (r *quotaUsageRepositoryImpl) Delete(ctx context.Context, id int64) error {
 // List 获取配额使用记录列表
 func (r *quotaUsageRepositoryImpl) List(ctx context.Context, offset, limit int) ([]*entities.QuotaUsage, error) {
 	query := `
-		SELECT id, user_id, quota_id, period_start, period_end, used_value, created_at, updated_at
-		FROM quota_usage 
+		SELECT id, api_key_id, quota_id, period_start, period_end, used_value, created_at, updated_at
+		FROM quota_usage
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
 	`
@@ -423,7 +412,7 @@ func (r *quotaUsageRepositoryImpl) List(ctx context.Context, offset, limit int) 
 		usage := &entities.QuotaUsage{}
 		err := rows.Scan(
 			&usage.ID,
-			&usage.UserID,
+			&usage.APIKeyID,
 			&usage.QuotaID,
 			&usage.PeriodStart,
 			&usage.PeriodEnd,

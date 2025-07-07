@@ -29,7 +29,9 @@
     "updated_at": "Updated At",
     "page": "Page",
     "total": "Total",
-    "items": "items"
+    "items": "items",
+    "enable": "Enable",
+    "disable": "Disable"
   },
   "profile": {
     "title": "Profile",
@@ -262,7 +264,11 @@
     "usage_instruction_1": "Include this API key in your request headers",
     "usage_instruction_2": "Keep your API key secure and never share it publicly",
     "usage_instruction_3": "You can manage this key from the API Keys page (enable/disable/delete)",
-    "saved_api_key": "I've Saved My API Key"
+    "saved_api_key": "I've Saved My API Key",
+    "basic_information": "Basic Information",
+    "usage_statistics": "Usage Statistics",
+    "total_tokens": "Total Tokens",
+    "total_cost": "Total Cost"
   },
   "usage_logs": {
     "title": "Usage Logs",
@@ -327,6 +333,44 @@
       "short": "MM/DD/YYYY",
       "long": "MMMM DD, YYYY",
       "datetime": "MM/DD/YYYY HH:mm:ss"
+    }
+  },
+  "quota": {
+    "title": "Quota Configuration",
+    "current_quotas": "Current Quotas",
+    "add_quota": "Add Quota",
+    "add_new_quota": "Add New Quota",
+    "quota_type": "Quota Type",
+    "period": "Period",
+    "limit_value": "Limit Value",
+    "used_value": "Used",
+    "remaining": "Remaining",
+    "usage_rate": "Usage Rate",
+    "no_quotas": "No quota configurations",
+    "quota_types": {
+      "requests": "Requests",
+      "tokens": "Tokens",
+      "cost": "Cost"
+    },
+    "periods": {
+      "total": "Total Limit",
+      "minute": "Per Minute",
+      "hour": "Per Hour",
+      "day": "Per Day",
+      "month": "Per Month"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "errors": {
+      "fetch_failed": "Failed to fetch quota information",
+      "create_failed": "Failed to create quota",
+      "delete_failed": "Failed to delete quota",
+      "duplicate_quota": "Quota already exists, only one quota can be set per type and period combination"
+    },
+    "helper_text": {
+      "total_quota": "Total limit: no time period restriction"
     }
   }
 }

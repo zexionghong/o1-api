@@ -85,6 +85,7 @@ func (r *Router) SetupRoutes() {
 	healthHandler := handlers.NewHealthHandler(r.gatewayService, r.logger)
 	authHandler := handlers.NewAuthHandler(r.serviceFactory.AuthService(), r.logger)
 	toolHandler := handlers.NewToolHandler(r.serviceFactory.ToolService(), r.logger)
+	quotaHandler := handlers.NewQuotaHandler(r.serviceFactory.QuotaService(), r.logger)
 
 	// 健康检查路由（无需认证）
 	health := r.engine.Group("/health")
@@ -178,6 +179,18 @@ func (r *Router) SetupRoutes() {
 			apiKeys.GET("/:id", apiKeyHandler.GetAPIKey)
 			apiKeys.PUT("/:id", apiKeyHandler.UpdateAPIKey)
 			apiKeys.DELETE("/:id", apiKeyHandler.DeleteAPIKey)
+
+			// API密钥配额管理路由
+			apiKeys.GET("/:id/quotas", quotaHandler.GetAPIKeyQuotas)
+			apiKeys.POST("/:id/quotas", quotaHandler.CreateAPIKeyQuota)
+			apiKeys.GET("/:id/quota-status", quotaHandler.GetQuotaStatus)
+		}
+
+		// 配额管理路由
+		quotas := admin.Group("/quotas")
+		{
+			quotas.PUT("/:quota_id", quotaHandler.UpdateQuota)
+			quotas.DELETE("/:quota_id", quotaHandler.DeleteQuota)
 		}
 
 		// 工具管理路由

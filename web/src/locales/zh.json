@@ -29,7 +29,9 @@
     "updated_at": "更新时间",
     "page": "页",
     "total": "总计",
-    "items": "项"
+    "items": "项",
+    "enable": "启用",
+    "disable": "禁用"
   },
   "profile": {
     "title": "个人中心",
@@ -262,7 +264,11 @@
     "usage_instruction_1": "在请求头中包含此 API 密钥",
     "usage_instruction_2": "保持您的 API 密钥安全，切勿公开分享",
     "usage_instruction_3": "您可以从 API 密钥页面管理此密钥（启用/禁用/删除）",
-    "saved_api_key": "我已保存我的 API 密钥"
+    "saved_api_key": "我已保存我的 API 密钥",
+    "basic_information": "基本信息",
+    "usage_statistics": "使用统计",
+    "total_tokens": "总Token数",
+    "total_cost": "总费用"
   },
   "usage_logs": {
     "title": "使用日志",
@@ -327,6 +333,44 @@
       "short": "YYYY/MM/DD",
       "long": "YYYY年MM月DD日",
       "datetime": "YYYY/MM/DD HH:mm:ss"
+    }
+  },
+  "quota": {
+    "title": "配额配置",
+    "current_quotas": "当前配额",
+    "add_quota": "添加配额",
+    "add_new_quota": "添加新配额",
+    "quota_type": "配额类型",
+    "period": "周期",
+    "limit_value": "限制值",
+    "used_value": "已使用",
+    "remaining": "剩余",
+    "usage_rate": "使用率",
+    "no_quotas": "暂无配额配置",
+    "quota_types": {
+      "requests": "请求次数",
+      "tokens": "Token数量",
+      "cost": "费用"
+    },
+    "periods": {
+      "total": "总限额",
+      "minute": "每分钟",
+      "hour": "每小时",
+      "day": "每天",
+      "month": "每月"
+    },
+    "status": {
+      "active": "启用",
+      "inactive": "禁用"
+    },
+    "errors": {
+      "fetch_failed": "获取配额信息失败",
+      "create_failed": "创建配额失败",
+      "delete_failed": "删除配额失败",
+      "duplicate_quota": "限额已存在，每种类型和周期组合只能设置一个限额"
+    },
+    "helper_text": {
+      "total_quota": "总限额：不限制时间周期"
     }
   }
 }

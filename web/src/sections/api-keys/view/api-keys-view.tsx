@@ -29,6 +29,7 @@ import { ApiKeyTableHead } from '../api-key-table-head';
 import { ApiKeyTableToolbar } from '../api-key-table-toolbar';
 import { ApiKeyDetailDialog } from '../api-key-detail-dialog';
 import { ApiKeyCreatedDialog } from '../api-key-created-dialog';
+import { QuotaConfigDialog } from '../quota-config-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -69,6 +70,7 @@ export function ApiKeysView() {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [openCreatedDialog, setOpenCreatedDialog] = useState(false);
+  const [openQuotaDialog, setOpenQuotaDialog] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<ApiKey | null>(null);
   const [newApiKey, setNewApiKey] = useState<{ key: string; name: string } | null>(null);
   const [createFormData, setCreateFormData] = useState<CreateApiKeyData>({
@@ -203,6 +205,12 @@ export function ApiKeysView() {
     setOpenDetailDialog(true);
   };
 
+  // 配置API密钥配额
+  const handleConfigureQuota = (apiKey: ApiKey) => {
+    setSelectedApiKey(apiKey);
+    setOpenQuotaDialog(true);
+  };
+
   useEffect(() => {
     if (state.user?.id) {
       fetchApiKeys();
@@ -312,6 +320,7 @@ export function ApiKeysView() {
                   { id: 'name', label: t('common.name') },
                   { id: 'key_prefix', label: t('api_keys.key_prefix') },
                   { id: 'status', label: t('common.status') },
+                  { id: 'quotas', label: '限额配置', align: 'center' as const },
                   { id: 'last_used_at', label: t('api_keys.last_used') },
                   { id: 'created_at', label: t('common.created_at') },
                   { id: '', label: '' },
@@ -329,6 +338,7 @@ export function ApiKeysView() {
                       onViewDetails={() => handleViewDetails(row)}
                       onStatusChange={(status) => handleStatusChange(row.id, status)}
                       onDeleteRow={() => handleDeleteApiKey(row.id)}
+                      onConfigureQuota={() => handleConfigureQuota(row)}
                     />
                   ))}
                 {emptyRows > 0 && (
@@ -406,6 +416,19 @@ export function ApiKeysView() {
           setNewApiKey(null);
         }}
       />
+
+      {/* Quota Config Dialog */}
+      {selectedApiKey && (
+        <QuotaConfigDialog
+          open={openQuotaDialog}
+          onClose={() => {
+            setOpenQuotaDialog(false);
+            setSelectedApiKey(null);
+          }}
+          apiKeyId={selectedApiKey.id}
+          apiKeyName={selectedApiKey.name}
+        />
+      )}
     </DashboardContent>
   );
 }

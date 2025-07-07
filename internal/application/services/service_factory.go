@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"ai-api-gateway/internal/domain/repositories"
+	"ai-api-gateway/internal/domain/services"
 	"ai-api-gateway/internal/infrastructure/async"
 	"ai-api-gateway/internal/infrastructure/config"
 	"ai-api-gateway/internal/infrastructure/logger"
@@ -68,7 +69,7 @@ func (f *ServiceFactory) ModelService() ModelService {
 }
 
 // QuotaService 获取配额服务
-func (f *ServiceFactory) QuotaService() QuotaService {
+func (f *ServiceFactory) QuotaService() services.QuotaService {
 	// 检查是否启用异步配额处理
 	if f.isAsyncQuotaEnabled() && f.redisFactory != nil {
 		// 创建异步配额服务
@@ -174,7 +175,7 @@ func (f *ServiceFactory) isAsyncQuotaEnabled() bool {
 }
 
 // createAsyncQuotaService 创建异步配额服务
-func (f *ServiceFactory) createAsyncQuotaService() (QuotaService, error) {
+func (f *ServiceFactory) createAsyncQuotaService() (services.QuotaService, error) {
 	// 创建异步消费者配置
 	config := f.getAsyncQuotaConfig()
 
