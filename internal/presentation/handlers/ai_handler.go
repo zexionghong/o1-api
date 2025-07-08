@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,6 +9,8 @@ import (
 
 	"ai-api-gateway/internal/application/dto"
 	"ai-api-gateway/internal/infrastructure/clients"
+	"ai-api-gateway/internal/infrastructure/config"
+	"ai-api-gateway/internal/infrastructure/functioncall"
 	"ai-api-gateway/internal/infrastructure/gateway"
 	"ai-api-gateway/internal/infrastructure/logger"
 	"ai-api-gateway/internal/presentation/middleware"
@@ -17,15 +20,24 @@ import (
 
 // AIHandler AI请求处理器
 type AIHandler struct {
-	gatewayService gateway.GatewayService
-	logger         logger.Logger
+	gatewayService      gateway.GatewayService
+	logger              logger.Logger
+	config              *config.Config
+	functionCallHandler functioncall.FunctionCallHandler
 }
 
 // NewAIHandler 创建AI请求处理器
-func NewAIHandler(gatewayService gateway.GatewayService, logger logger.Logger) *AIHandler {
+func NewAIHandler(
+	gatewayService gateway.GatewayService,
+	logger logger.Logger,
+	config *config.Config,
+	functionCallHandler functioncall.FunctionCallHandler,
+) *AIHandler {
 	return &AIHandler{
-		gatewayService: gatewayService,
-		logger:         logger,
+		gatewayService:      gatewayService,
+		logger:              logger,
+		config:              config,
+		functionCallHandler: functionCallHandler,
 	}
 }
 
@@ -272,6 +284,14 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 		MaxTokens:   chatRequest.MaxTokens,
 		Temperature: chatRequest.Temperature,
 		Stream:      chatRequest.Stream,
+		Tools:       chatRequest.Tools,
+		ToolChoice:  chatRequest.ToolChoice,
+	}
+
+	// 如果启用了 Function Call 且没有提供工具，自动添加可用工具
+	if h.config.FunctionCall.Enabled && len(aiRequest.Tools) == 0 && functioncall.ShouldUseFunctionCall(aiRequest.Messages) {
+		aiRequest.Tools = h.functionCallHandler.GetAvailableTools()
+		aiRequest.ToolChoice = "auto"
 	}
 
 	// 构造网关请求
@@ -334,6 +354,31 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 	c.Header("X-Provider", response.Provider)
 	c.Header("X-Model", response.Model)
 	c.Header("X-Duration-Ms", strconv.FormatInt(response.Duration.Milliseconds(), 10))
+
+	// 检查是否需要处理 Function Call
+	if h.config.FunctionCall.Enabled && response.Response != nil {
+		finalResponse, err := h.handleFunctionCallResponse(c.Request.Context(), response.Response, aiRequest, gatewayRequest)
+		if err != nil {
+			h.logger.WithFields(map[string]interface{}{
+				"request_id": requestID,
+				"error":      err.Error(),
+			}).Error("Failed to handle function call")
+
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse(
+				"FUNCTION_CALL_FAILED",
+				"Failed to process function call",
+				map[string]interface{}{
+					"request_id": requestID,
+				},
+			))
+			return
+		}
+
+		if finalResponse != nil {
+			c.JSON(http.StatusOK, finalResponse)
+			return
+		}
+	}
 
 	// 返回AI响应（保持与OpenAI API兼容的格式）
 	c.JSON(http.StatusOK, response.Response)
@@ -529,4 +574,76 @@ func (h *AIHandler) Usage(c *gin.Context) {
 		"user_id": userID,
 		"usage":   gin.H{},
 	})
+}
+
+// handleFunctionCallResponse 处理包含 Function Call 的响应
+func (h *AIHandler) handleFunctionCallResponse(ctx context.Context, response *clients.AIResponse, originalRequest *clients.AIRequest, gatewayRequest *gateway.GatewayRequest) (*clients.AIResponse, error) {
+	// 检查响应中是否包含工具调用
+	if len(response.Choices) == 0 {
+		return nil, nil
+	}
+
+	choice := response.Choices[0]
+
+	// 检查是否有工具调用
+	var toolCalls []clients.ToolCall
+	if len(choice.Message.ToolCalls) > 0 {
+		toolCalls = choice.Message.ToolCalls
+	} else if len(choice.ToolCalls) > 0 {
+		toolCalls = choice.ToolCalls
+	}
+
+	if len(toolCalls) == 0 {
+		return nil, nil // 没有工具调用，返回原响应
+	}
+
+	h.logger.WithFields(map[string]interface{}{
+		"tool_calls_count": len(toolCalls),
+		"request_id":       gatewayRequest.RequestID,
+	}).Info("Processing function calls")
+
+	// 将助手的消息（包含工具调用）添加到消息历史
+	messages := append(originalRequest.Messages, choice.Message)
+
+	// 执行工具调用
+	toolMessages, err := h.functionCallHandler.HandleFunctionCalls(ctx, messages, toolCalls)
+	if err != nil {
+		return nil, fmt.Errorf("failed to handle function calls: %w", err)
+	}
+
+	// 将工具响应消息添加到消息历史
+	messages = append(messages, toolMessages...)
+
+	// 创建新的请求，包含完整的消息历史
+	newRequest := &clients.AIRequest{
+		Model:       originalRequest.Model,
+		Messages:    messages,
+		MaxTokens:   originalRequest.MaxTokens,
+		Temperature: originalRequest.Temperature,
+		Stream:      false, // Function call 后的请求不使用流式
+		// 不再包含 tools，让模型生成最终回复
+	}
+
+	// 创建新的网关请求
+	newGatewayRequest := &gateway.GatewayRequest{
+		UserID:    gatewayRequest.UserID,
+		APIKeyID:  gatewayRequest.APIKeyID,
+		ModelSlug: gatewayRequest.ModelSlug,
+		Request:   newRequest,
+		RequestID: gatewayRequest.RequestID,
+	}
+
+	// 发送第二次请求获取最终回复
+	finalResponse, err := h.gatewayService.ProcessRequest(ctx, newGatewayRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process final request after function calls: %w", err)
+	}
+
+	h.logger.WithFields(map[string]interface{}{
+		"request_id":   gatewayRequest.RequestID,
+		"final_tokens": finalResponse.Usage.TotalTokens,
+		"final_cost":   finalResponse.Cost.TotalCost,
+	}).Info("Function call processing completed")
+
+	return finalResponse.Response, nil
 }

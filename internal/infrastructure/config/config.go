@@ -17,15 +17,16 @@ type dbConfig struct {
 
 // Config 应用配置
 type Config struct {
-	Server      ServerConfig      `mapstructure:"server"`
-	Database    dbConfig          `mapstructure:"database"`
-	Logging     LoggingConfig     `mapstructure:"logging"`
-	RateLimit   RateLimitConfig   `mapstructure:"rate_limiting"`
-	Providers   ProvidersConfig   `mapstructure:"providers"`
-	LoadBalance LoadBalanceConfig `mapstructure:"load_balancer"`
-	Monitoring  MonitoringConfig  `mapstructure:"monitoring"`
-	Billing     BillingConfig     `mapstructure:"billing"`
-	JWT         JWTConfig         `mapstructure:"jwt"`
+	Server       ServerConfig       `mapstructure:"server"`
+	Database     dbConfig           `mapstructure:"database"`
+	Logging      LoggingConfig      `mapstructure:"logging"`
+	RateLimit    RateLimitConfig    `mapstructure:"rate_limiting"`
+	Providers    ProvidersConfig    `mapstructure:"providers"`
+	LoadBalance  LoadBalanceConfig  `mapstructure:"load_balancer"`
+	Monitoring   MonitoringConfig   `mapstructure:"monitoring"`
+	Billing      BillingConfig      `mapstructure:"billing"`
+	JWT          JWTConfig          `mapstructure:"jwt"`
+	FunctionCall FunctionCallConfig `mapstructure:"function_call"`
 }
 
 // ServerConfig 服务器配置
@@ -96,6 +97,26 @@ type JWTConfig struct {
 	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
 	Issuer          string        `mapstructure:"issuer"`
 	Audience        string        `mapstructure:"audience"`
+}
+
+// FunctionCallConfig Function Call 配置
+type FunctionCallConfig struct {
+	Enabled       bool         `mapstructure:"enabled"`
+	SearchService SearchConfig `mapstructure:"search_service"`
+}
+
+// SearchConfig 搜索服务配置
+type SearchConfig struct {
+	Service        string `mapstructure:"service"`          // 搜索服务类型
+	MaxResults     int    `mapstructure:"max_results"`      // 最大结果数
+	CrawlResults   int    `mapstructure:"crawl_results"`    // 深度搜索数量
+	Search1APIKey  string `mapstructure:"search1api_key"`   // Search1API密钥
+	GoogleCX       string `mapstructure:"google_cx"`        // Google自定义搜索引擎ID
+	GoogleKey      string `mapstructure:"google_key"`       // Google API密钥
+	BingKey        string `mapstructure:"bing_key"`         // Bing搜索API密钥
+	SerpAPIKey     string `mapstructure:"serpapi_key"`      // SerpAPI密钥
+	SerperKey      string `mapstructure:"serper_key"`       // Serper密钥
+	SearXNGBaseURL string `mapstructure:"searxng_base_url"` // SearXNG服务地址
 }
 
 // LoadConfig 加载配置
@@ -182,6 +203,12 @@ func setDefaults() {
 	viper.SetDefault("jwt.refresh_token_ttl", "168h")
 	viper.SetDefault("jwt.issuer", "ai-api-gateway")
 	viper.SetDefault("jwt.audience", "ai-api-gateway-users")
+
+	// Function Call默认值
+	viper.SetDefault("function_call.enabled", false)
+	viper.SetDefault("function_call.search_service.service", "duckduckgo")
+	viper.SetDefault("function_call.search_service.max_results", 10)
+	viper.SetDefault("function_call.search_service.crawl_results", 0)
 }
 
 // validateConfig 验证配置

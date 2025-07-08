@@ -29,7 +29,9 @@ type AIRequest struct {
 	MaxTokens   int                    `json:"max_tokens,omitempty"`
 	Temperature float64                `json:"temperature,omitempty"`
 	Stream      bool                   `json:"stream,omitempty"`
-	Extra       map[string]interface{} `json:"-"` // 额外参数
+	Tools       []Tool                 `json:"tools,omitempty"`       // Function call tools
+	ToolChoice  interface{}            `json:"tool_choice,omitempty"` // Tool choice strategy
+	Extra       map[string]interface{} `json:"-"`                     // 额外参数
 }
 
 // ChatCompletionRequest 聊天补全请求
@@ -39,6 +41,8 @@ type ChatCompletionRequest struct {
 	MaxTokens   int         `json:"max_tokens,omitempty" example:"150"`
 	Temperature float64     `json:"temperature,omitempty" example:"0.7"`
 	Stream      bool        `json:"stream,omitempty" example:"false"`
+	Tools       []Tool      `json:"tools,omitempty"`       // Function call tools
+	ToolChoice  interface{} `json:"tool_choice,omitempty"` // Tool choice strategy
 }
 
 // CompletionRequest 文本补全请求
@@ -52,8 +56,11 @@ type CompletionRequest struct {
 
 // AIMessage AI消息
 type AIMessage struct {
-	Role    string `json:"role" binding:"required" example:"user" enums:"system,user,assistant"`
-	Content string `json:"content" binding:"required" example:"Hello, how are you?"`
+	Role       string     `json:"role" binding:"required" example:"user" enums:"system,user,assistant,tool"`
+	Content    string     `json:"content" example:"Hello, how are you?"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`   // Function calls made by assistant
+	ToolCallID string     `json:"tool_call_id,omitempty"` // ID of the tool call this message is responding to
+	Name       string     `json:"name,omitempty"`         // Name of the function for tool messages
 }
 
 // AIResponse AI响应
@@ -69,10 +76,11 @@ type AIResponse struct {
 
 // AIChoice AI选择
 type AIChoice struct {
-	Index        int       `json:"index"`
-	Message      AIMessage `json:"message,omitempty"`
-	Text         string    `json:"text,omitempty"`
-	FinishReason string    `json:"finish_reason"`
+	Index        int        `json:"index"`
+	Message      AIMessage  `json:"message,omitempty"`
+	Text         string     `json:"text,omitempty"`
+	FinishReason string     `json:"finish_reason"`
+	ToolCalls    []ToolCall `json:"tool_calls,omitempty"` // Function calls in streaming mode
 }
 
 // AIUsage AI使用情况
@@ -109,6 +117,32 @@ type UsageResponse struct {
 	TotalRequests int     `json:"total_requests"`
 	TotalTokens   int     `json:"total_tokens"`
 	TotalCost     float64 `json:"total_cost"`
+}
+
+// Tool Function call tool definition
+type Tool struct {
+	Type     string   `json:"type" example:"function"`
+	Function Function `json:"function"`
+}
+
+// Function Function definition for tool calls
+type Function struct {
+	Name        string      `json:"name" example:"search"`
+	Description string      `json:"description" example:"Search for information"`
+	Parameters  interface{} `json:"parameters"` // JSON Schema for function parameters
+}
+
+// ToolCall Function call made by the assistant
+type ToolCall struct {
+	ID       string       `json:"id" example:"call_123"`
+	Type     string       `json:"type" example:"function"`
+	Function FunctionCall `json:"function"`
+}
+
+// FunctionCall Function call details
+type FunctionCall struct {
+	Name      string `json:"name" example:"search"`
+	Arguments string `json:"arguments"` // JSON string of function arguments
 }
 
 // aiProviderClientImpl AI提供商客户端实现

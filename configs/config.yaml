@@ -188,3 +188,26 @@ distributed_lock:
   retry_interval: "100ms"
   # 获取锁的最大重试次数
   max_retries: 10
+
+# Function Call 配置
+function_call:
+  # 是否启用 Function Call 功能
+  enabled: true
+
+  # 搜索服务配置
+  search_service:
+    # 搜索服务类型: search1api, google, bing, serpapi, serper, duckduckgo, searxng
+    service: "google"
+    # 最大搜索结果数
+    max_results: 10
+    # 深度搜索数量（仅 search1api 支持）
+    crawl_results: 0
+
+    # 各搜索服务的 API 密钥（根据使用的服务配置）
+    # search1api_key: "your_search1api_key"
+    google_cx: "05afc7eed6abd4a3c"
+    google_key: "AIzaSyAJ-0mmqqaR610601edOxYw4MsS6GoavcY"
+    # bing_key: "your_bing_search_api_key"
+    # serpapi_key: "your_serpapi_key"
+    # serper_key: "your_serper_key"
+    # searxng_base_url: "https://your-searxng-instance.com"
