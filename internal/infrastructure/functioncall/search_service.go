@@ -74,6 +74,7 @@ func (s *searchServiceImpl) Search(ctx context.Context, query string) (string, e
 	s.logger.WithFields(map[string]interface{}{
 		"service": s.config.Service,
 		"query":   query,
+		"config":  fmt.Sprintf("%+v", s.config),
 	}).Info("Executing search")
 
 	var results []SearchResult
@@ -81,20 +82,37 @@ func (s *searchServiceImpl) Search(ctx context.Context, query string) (string, e
 
 	switch s.config.Service {
 	case "search1api":
+		s.logger.Info("Using Search1API service")
 		results, err = s.searchWithSearch1API(ctx, query, false)
 	case "google":
+		keyLength := len(s.config.GoogleKey)
+		if keyLength > 10 {
+			keyLength = 10
+		}
+		s.logger.WithFields(map[string]interface{}{
+			"google_cx":  s.config.GoogleCX,
+			"google_key": s.config.GoogleKey[:keyLength] + "...",
+		}).Info("Using Google Custom Search service")
 		results, err = s.searchWithGoogle(ctx, query, false)
 	case "bing":
+		s.logger.Info("Using Bing Search service")
 		results, err = s.searchWithBing(ctx, query, false)
 	case "serpapi":
+		s.logger.Info("Using SerpAPI service")
 		results, err = s.searchWithSerpAPI(ctx, query, false)
 	case "serper":
+		s.logger.Info("Using Serper service")
 		results, err = s.searchWithSerper(ctx, query, false)
 	case "duckduckgo":
+		s.logger.Info("Using DuckDuckGo service")
 		results, err = s.searchWithDuckDuckGo(ctx, query, false)
 	case "searxng":
+		s.logger.Info("Using SearXNG service")
 		results, err = s.searchWithSearXNG(ctx, query, false)
 	default:
+		s.logger.WithFields(map[string]interface{}{
+			"service": s.config.Service,
+		}).Error("Unsupported search service")
 		return "", fmt.Errorf("unsupported search service: %s", s.config.Service)
 	}
 
@@ -107,16 +125,27 @@ func (s *searchServiceImpl) Search(ctx context.Context, query string) (string, e
 		return "", err
 	}
 
-	response := SearchResponse{Results: results}
-	responseJSON, err := json.Marshal(response)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal search response: %w", err)
-	}
-
 	s.logger.WithFields(map[string]interface{}{
 		"service":      s.config.Service,
 		"query":        query,
 		"result_count": len(results),
+		"results":      results,
+	}).Info("Search results obtained")
+
+	response := SearchResponse{Results: results}
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error": err.Error(),
+		}).Error("Failed to marshal search response")
+		return "", fmt.Errorf("failed to marshal search response: %w", err)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"service":         s.config.Service,
+		"query":           query,
+		"result_count":    len(results),
+		"response_length": len(responseJSON),
 	}).Info("Search completed successfully")
 
 	return string(responseJSON), nil

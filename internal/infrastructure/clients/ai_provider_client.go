@@ -1,9 +1,14 @@
 package clients
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"ai-api-gateway/internal/domain/entities"
@@ -14,11 +19,26 @@ type AIProviderClient interface {
 	// SendRequest 发送请求到AI提供商
 	SendRequest(ctx context.Context, provider *entities.Provider, request *AIRequest) (*AIResponse, error)
 
+	// SendStreamRequest 发送流式请求到AI提供商
+	SendStreamRequest(ctx context.Context, provider *entities.Provider, request *AIRequest, streamChan chan<- *StreamChunk) error
+
 	// HealthCheck 健康检查
 	HealthCheck(ctx context.Context, provider *entities.Provider) error
 
 	// GetModels 获取提供商支持的模型列表
 	GetModels(ctx context.Context, provider *entities.Provider) ([]*AIModel, error)
+}
+
+// StreamChunk 流式响应数据块
+type StreamChunk struct {
+	ID           string   `json:"id"`
+	Object       string   `json:"object"`
+	Created      int64    `json:"created"`
+	Model        string   `json:"model"`
+	Content      string   `json:"content"`
+	FinishReason *string  `json:"finish_reason"`
+	Usage        *AIUsage `json:"usage,omitempty"`
+	Cost         *AICost  `json:"cost,omitempty"`
 }
 
 // AIRequest AI请求 (通用结构)
@@ -88,6 +108,13 @@ type AIUsage struct {
 	PromptTokens     int `json:"prompt_tokens"`
 	CompletionTokens int `json:"completion_tokens"`
 	TotalTokens      int `json:"total_tokens"`
+}
+
+// AICost AI成本信息
+type AICost struct {
+	PromptCost     float64 `json:"prompt_cost"`
+	CompletionCost float64 `json:"completion_cost"`
+	TotalCost      float64 `json:"total_cost"`
 }
 
 // AIError AI错误
@@ -320,6 +347,64 @@ func (c *aiProviderClientImpl) GetModels(ctx context.Context, provider *entities
 	return models, nil
 }
 
+// SendStreamRequest 发送流式请求到AI提供商
+func (c *aiProviderClientImpl) SendStreamRequest(ctx context.Context, provider *entities.Provider, request *AIRequest, streamChan chan<- *StreamChunk) error {
+	// 确保请求是流式的
+	request.Stream = true
+
+	// 构造请求URL
+	url := fmt.Sprintf("%s/chat/completions", provider.BaseURL)
+
+	// 构造请求头
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Accept":        "text/event-stream",
+		"Cache-Control": "no-cache",
+	}
+
+	// 根据提供商类型设置认证头
+	switch provider.Slug {
+	case "302":
+		if provider.APIKeyEncrypted != nil {
+			headers["Authorization"] = fmt.Sprintf("Bearer %s", *provider.APIKeyEncrypted)
+		}
+	case "openai":
+		if provider.APIKeyEncrypted != nil {
+			headers["Authorization"] = fmt.Sprintf("Bearer %s", *provider.APIKeyEncrypted)
+		}
+	case "anthropic":
+		if provider.APIKeyEncrypted != nil {
+			headers["x-api-key"] = *provider.APIKeyEncrypted
+			headers["anthropic-version"] = "2023-06-01"
+		}
+		// Anthropic使用不同的端点
+		url = fmt.Sprintf("%s/messages", provider.BaseURL)
+	}
+
+	// 打印流式请求信息
+	fmt.Println("=== SENDING STREAM REQUEST ===")
+	fmt.Println("URL:", url)
+	fmt.Println("Request struct:", request)
+
+	if jsonBytes, err := json.Marshal(request); err == nil {
+		fmt.Println("Request JSON:", string(jsonBytes))
+	}
+
+	if provider.APIKeyEncrypted != nil {
+		fmt.Printf("API Key: %s\n", *provider.APIKeyEncrypted)
+	} else {
+		fmt.Println("API Key: nil")
+	}
+
+	for k, v := range headers {
+		fmt.Printf("%s: %s\n", k, v)
+	}
+	fmt.Println("===============================")
+
+	// 发送流式请求
+	return c.sendStreamRequestToProvider(ctx, url, request, headers, streamChan)
+}
+
 // 工厂方法
 func NewOpenAIClient(httpClient HTTPClient) AIProviderClient {
 	return NewAIProviderClient(httpClient)
@@ -327,4 +412,117 @@ func NewOpenAIClient(httpClient HTTPClient) AIProviderClient {
 
 func NewAnthropicClient(httpClient HTTPClient) AIProviderClient {
 	return NewAIProviderClient(httpClient)
+}
+
+// sendStreamRequestToProvider 发送流式请求到提供商的具体实现
+func (c *aiProviderClientImpl) sendStreamRequestToProvider(ctx context.Context, url string, request *AIRequest, headers map[string]string, streamChan chan<- *StreamChunk) error {
+	// 序列化请求体
+	requestBody, err := json.Marshal(request)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+	fmt.Println("Request JSON:", string(requestBody))
+
+	// 创建HTTP请求
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(requestBody))
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// 设置请求头
+	for key, value := range headers {
+		httpReq.Header.Set(key, value)
+	}
+
+	// 创建HTTP客户端
+	client := &http.Client{
+		Timeout: 60 * time.Second,
+	}
+
+	// 发送请求
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("HTTP request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// 处理流式响应
+	return c.processStreamResponse(ctx, resp.Body, streamChan, request.Model)
+}
+
+// processStreamResponse 处理流式响应
+func (c *aiProviderClientImpl) processStreamResponse(ctx context.Context, body io.Reader, streamChan chan<- *StreamChunk, model string) error {
+	scanner := bufio.NewScanner(body)
+
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			line := scanner.Text()
+
+			// 跳过空行和注释行
+			if line == "" || !strings.HasPrefix(line, "data: ") {
+				continue
+			}
+
+			// 移除 "data: " 前缀
+			data := strings.TrimPrefix(line, "data: ")
+
+			// 检查是否是结束标记
+			if data == "[DONE]" {
+				fmt.Println("Stream completed with [DONE] marker")
+				return nil
+			}
+
+			// 解析JSON数据
+			var sseData map[string]interface{}
+			if err := json.Unmarshal([]byte(data), &sseData); err != nil {
+				fmt.Printf("Failed to parse SSE data: %s, error: %v\n", data, err)
+				continue
+			}
+			fmt.Printf("Received SSE data: %s\n", sseData)
+
+			// 提取内容
+			content := ""
+			if choices, ok := sseData["choices"].([]interface{}); ok && len(choices) > 0 {
+				if choice, ok := choices[0].(map[string]interface{}); ok {
+					if delta, ok := choice["delta"].(map[string]interface{}); ok {
+						if deltaContent, ok := delta["content"].(string); ok {
+							content = deltaContent
+						}
+					}
+				}
+			}
+
+			// 构造流式数据块
+			chunk := &StreamChunk{
+				ID:      fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano()),
+				Object:  "chat.completion.chunk",
+				Created: time.Now().Unix(),
+				Model:   model,
+				Content: content,
+			}
+
+			// 发送数据块
+			select {
+			case streamChan <- chunk:
+				fmt.Printf("Received and forwarded chunk: %s\n", content)
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading stream: %w", err)
+	}
+
+	return nil
 }

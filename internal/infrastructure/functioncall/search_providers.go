@@ -74,18 +74,39 @@ func (s *searchServiceImpl) searchWithGoogle(ctx context.Context, query string, 
 
 	apiURL := baseURL + "?" + params.Encode()
 
+	s.logger.WithFields(map[string]interface{}{
+		"url":     apiURL,
+		"query":   query,
+		"is_news": isNews,
+		"cx":      s.config.GoogleCX,
+	}).Info("Making Google Custom Search API request")
+
 	req, err := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
 	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error": err.Error(),
+		}).Error("Failed to create Google API request")
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error": err.Error(),
+		}).Error("Failed to execute Google API request")
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	s.logger.WithFields(map[string]interface{}{
+		"status_code": resp.StatusCode,
+		"headers":     resp.Header,
+	}).Info("Received Google API response")
+
 	if resp.StatusCode != http.StatusOK {
+		s.logger.WithFields(map[string]interface{}{
+			"status_code": resp.StatusCode,
+		}).Error("Google API request failed with non-200 status")
 		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
 	}
 
@@ -95,11 +116,31 @@ func (s *searchServiceImpl) searchWithGoogle(ctx context.Context, query string, 
 			Link    string `json:"link"`
 			Snippet string `json:"snippet"`
 		} `json:"items"`
+		Error struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error": err.Error(),
+		}).Error("Failed to decode Google API response")
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
+
+	// 检查API错误
+	if apiResponse.Error.Code != 0 {
+		s.logger.WithFields(map[string]interface{}{
+			"error_code":    apiResponse.Error.Code,
+			"error_message": apiResponse.Error.Message,
+		}).Error("Google API returned error")
+		return nil, fmt.Errorf("Google API error: %s (code: %d)", apiResponse.Error.Message, apiResponse.Error.Code)
+	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"items_count": len(apiResponse.Items),
+	}).Info("Successfully decoded Google API response")
 
 	var results []SearchResult
 	maxResults := s.config.MaxResults
@@ -117,6 +158,11 @@ func (s *searchServiceImpl) searchWithGoogle(ctx context.Context, query string, 
 			Snippet: item.Snippet,
 		})
 	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"results_count": len(results),
+		"max_results":   maxResults,
+	}).Info("Google search completed successfully")
 
 	return results, nil
 }

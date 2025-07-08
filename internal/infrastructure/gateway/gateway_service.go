@@ -440,6 +440,14 @@ func (g *gatewayServiceImpl) ProcessStreamRequest(ctx context.Context, request *
 
 // recordStreamUsage 记录流式请求的使用日志
 func (g *gatewayServiceImpl) recordStreamUsage(ctx context.Context, request *GatewayRequest, routeResponse *RouteResponse) {
+	// 检查响应是否为空
+	if routeResponse == nil || routeResponse.Response == nil {
+		g.logger.WithFields(map[string]interface{}{
+			"request_id": request.RequestID,
+		}).Debug("Skipping usage recording for stream request - no response data")
+		return
+	}
+
 	// 计算使用量和成本
 	usage := &UsageInfo{
 		InputTokens:  routeResponse.Response.Usage.PromptTokens,

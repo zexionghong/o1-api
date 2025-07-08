@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"ai-api-gateway/internal/application/dto"
 	"ai-api-gateway/internal/infrastructure/clients"
@@ -52,6 +53,13 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 
 	// 获取响应写入器
 	w := c.Writer
+
+	// 检查是否启用了Function Call
+	if h.config.FunctionCall.Enabled && len(gatewayRequest.Request.Tools) > 0 {
+		// 对于有工具的流式请求，需要特殊处理
+		h.handleStreamingRequestWithFunctionCall(c, gatewayRequest, requestID, userID, apiKeyID)
+		return
+	}
 
 	// 创建流式响应通道
 	streamChan := make(chan *gateway.StreamChunk, 100)
@@ -154,7 +162,8 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 			}
 
 			// 发送SSE数据
-			_, err = w.Write([]byte(fmt.Sprintf("data: %s\n\n", jsonData)))
+			sseMessage := fmt.Sprintf("data: %s\n\n", jsonData)
+			_, err = w.Write([]byte(sseMessage))
 			if err != nil {
 				h.logger.WithFields(map[string]interface{}{
 					"request_id": requestID,
@@ -646,4 +655,153 @@ func (h *AIHandler) handleFunctionCallResponse(ctx context.Context, response *cl
 	}).Info("Function call processing completed")
 
 	return finalResponse.Response, nil
+}
+
+// handleStreamingRequestWithFunctionCall 处理带有Function Call的流式请求
+func (h *AIHandler) handleStreamingRequestWithFunctionCall(c *gin.Context, gatewayRequest *gateway.GatewayRequest, requestID string, userID, apiKeyID int64) {
+	w := c.Writer
+
+	h.logger.WithFields(map[string]interface{}{
+		"request_id":  requestID,
+		"tools_count": len(gatewayRequest.Request.Tools),
+	}).Info("Processing streaming request with function call support")
+
+	// 首先发送非流式请求来检查是否有tool calls
+	nonStreamRequest := *gatewayRequest.Request
+	nonStreamRequest.Stream = false
+
+	nonStreamGatewayRequest := &gateway.GatewayRequest{
+		UserID:    gatewayRequest.UserID,
+		APIKeyID:  gatewayRequest.APIKeyID,
+		ModelSlug: gatewayRequest.ModelSlug,
+		Request:   &nonStreamRequest,
+		RequestID: gatewayRequest.RequestID,
+	}
+
+	// 处理第一次请求
+	response, err := h.gatewayService.ProcessRequest(c.Request.Context(), nonStreamGatewayRequest)
+	if err != nil {
+		h.logger.WithFields(map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		}).Error("Failed to process initial request for function call detection")
+
+		// 发送错误事件
+		errorData := map[string]interface{}{
+			"error": map[string]interface{}{
+				"message": "Failed to process request",
+				"type":    "internal_error",
+			},
+		}
+		errorJSON, _ := json.Marshal(errorData)
+		w.Write([]byte(fmt.Sprintf("data: %s\n\n", errorJSON)))
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+		return
+	}
+
+	// 检查是否需要处理 Function Call
+	if h.config.FunctionCall.Enabled && response.Response != nil {
+		finalResponse, err := h.handleFunctionCallResponse(c.Request.Context(), response.Response, &nonStreamRequest, nonStreamGatewayRequest)
+		if err != nil {
+			h.logger.WithFields(map[string]interface{}{
+				"request_id": requestID,
+				"error":      err.Error(),
+			}).Error("Failed to handle function call in streaming request")
+
+			// 发送错误事件
+			errorData := map[string]interface{}{
+				"error": map[string]interface{}{
+					"message": "Failed to process function call",
+					"type":    "function_call_error",
+				},
+			}
+			errorJSON, _ := json.Marshal(errorData)
+			w.Write([]byte(fmt.Sprintf("data: %s\n\n", errorJSON)))
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			return
+		}
+
+		// 如果有function call处理结果，使用最终响应
+		if finalResponse != nil {
+			response.Response = finalResponse
+		}
+	}
+
+	// 现在以流式方式发送最终响应
+	if response.Response != nil && len(response.Response.Choices) > 0 {
+		choice := response.Response.Choices[0]
+		content := choice.Message.Content
+
+		// 将内容分块发送，模拟流式输出
+		h.streamContent(w, content, response.Response.ID, response.Response.Model, requestID)
+	}
+
+	// 发送结束标记
+	w.Write([]byte("data: [DONE]\n\n"))
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	// 设置使用量到上下文
+	if response.Usage != nil {
+		c.Set("tokens_used", response.Usage.TotalTokens)
+	}
+	if response.Cost != nil {
+		c.Set("cost_used", response.Cost.TotalCost)
+	}
+}
+
+// streamContent 将内容以流式方式发送
+func (h *AIHandler) streamContent(w http.ResponseWriter, content, responseID, model, requestID string) {
+	// 获取Flusher接口
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		h.logger.WithFields(map[string]interface{}{
+			"request_id": requestID,
+		}).Error("ResponseWriter does not support flushing")
+		return
+	}
+
+	// 将内容按字符分块发送
+	for i, char := range content {
+		chunk := map[string]interface{}{
+			"id":      responseID,
+			"object":  "chat.completion.chunk",
+			"created": time.Now().Unix(),
+			"model":   model,
+			"choices": []map[string]interface{}{
+				{
+					"index": 0,
+					"delta": map[string]interface{}{
+						"content": string(char),
+					},
+					"finish_reason": func() interface{} {
+						if i == len(content)-1 {
+							return "stop"
+						}
+						return nil
+					}(),
+				},
+			},
+		}
+
+		chunkJSON, err := json.Marshal(chunk)
+		if err != nil {
+			h.logger.WithFields(map[string]interface{}{
+				"request_id": requestID,
+				"error":      err.Error(),
+			}).Error("Failed to marshal stream chunk")
+			continue
+		}
+
+		w.Write([]byte(fmt.Sprintf("data: %s\n\n", chunkJSON)))
+		flusher.Flush()
+
+		// 添加小延迟以模拟真实的流式输出
+		time.Sleep(10 * time.Millisecond)
+	}
 }
