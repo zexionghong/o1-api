@@ -81,6 +81,7 @@ func (r *Router) SetupRoutes() {
 			Service:        r.config.FunctionCall.SearchService.Service,
 			MaxResults:     r.config.FunctionCall.SearchService.MaxResults,
 			CrawlResults:   r.config.FunctionCall.SearchService.CrawlResults,
+			CrawlContent:   r.config.FunctionCall.SearchService.CrawlContent,
 			Search1APIKey:  r.config.FunctionCall.SearchService.Search1APIKey,
 			GoogleCX:       r.config.FunctionCall.SearchService.GoogleCX,
 			GoogleKey:      r.config.FunctionCall.SearchService.GoogleKey,

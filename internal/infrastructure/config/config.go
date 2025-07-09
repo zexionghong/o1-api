@@ -110,6 +110,7 @@ type SearchConfig struct {
 	Service        string `mapstructure:"service"`          // 搜索服务类型
 	MaxResults     int    `mapstructure:"max_results"`      // 最大结果数
 	CrawlResults   int    `mapstructure:"crawl_results"`    // 深度搜索数量
+	CrawlContent   bool   `mapstructure:"crawl_content"`    // 是否爬取网页内容并转换为Markdown
 	Search1APIKey  string `mapstructure:"search1api_key"`   // Search1API密钥
 	GoogleCX       string `mapstructure:"google_cx"`        // Google自定义搜索引擎ID
 	GoogleKey      string `mapstructure:"google_key"`       // Google API密钥

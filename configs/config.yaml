@@ -202,6 +202,8 @@ function_call:
     max_results: 10
     # 深度搜索数量（仅 search1api 支持）
     crawl_results: 0
+    # 是否爬取网页内容并转换为Markdown（启用后会显示数据源）
+    crawl_content: true
 
     # 各搜索服务的 API 密钥（根据使用的服务配置）
     # search1api_key: "your_search1api_key"
