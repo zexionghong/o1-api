@@ -511,18 +511,12 @@ func (s *searchServiceImpl) formatSearchResults(query string, results []SearchRe
 		}
 	}
 
-	// 详细来源信息
-	output.WriteString("## 参考来源\n\n")
-	output.WriteString("以下是本次搜索的详细来源信息：\n\n")
-
+	// 添加数据源URL列表（用户要求的格式）
+	output.WriteString("\n\n【重要】请在您的回答最后，必须按照以下确切格式添加数据源：\n\n")
 	for i, result := range results {
-		output.WriteString(fmt.Sprintf("**[%d]** %s\n", i+1, result.Title))
-		output.WriteString(fmt.Sprintf("🔗 %s\n", result.Link))
-		if result.Snippet != "" {
-			output.WriteString(fmt.Sprintf("📝 %s\n", result.Snippet))
-		}
-		output.WriteString("\n")
+		output.WriteString(fmt.Sprintf("%d. %s\n", i+1, result.Link))
 	}
+	output.WriteString("\n请严格按照上述编号格式在回答末尾列出这些URL，不要修改格式。")
 
 	return output.String()
 }

@@ -37,7 +37,7 @@ func (h *functionCallHandlerImpl) GetAvailableTools() []clients.Tool {
 			Type: "function",
 			Function: clients.Function{
 				Name:        "search",
-				Description: "Search for information on the internet",
+				Description: "Search for information on the internet. Always include the provided data source URLs at the end of your response.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
@@ -54,7 +54,7 @@ func (h *functionCallHandlerImpl) GetAvailableTools() []clients.Tool {
 			Type: "function",
 			Function: clients.Function{
 				Name:        "news",
-				Description: "Search for news articles",
+				Description: "Search for news articles. Always include the provided data source URLs at the end of your response.",
 				Parameters: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
@@ -97,9 +97,9 @@ func (h *functionCallHandlerImpl) HandleFunctionCalls(ctx context.Context, messa
 
 	for _, toolCall := range toolCalls {
 		h.logger.WithFields(map[string]interface{}{
-			"tool_call_id":   toolCall.ID,
-			"function_name":  toolCall.Function.Name,
-			"function_args":  toolCall.Function.Arguments,
+			"tool_call_id":  toolCall.ID,
+			"function_name": toolCall.Function.Name,
+			"function_args": toolCall.Function.Arguments,
 		}).Info("Executing function call")
 
 		result, err := h.executeFunction(ctx, toolCall.Function.Name, toolCall.Function.Arguments)
@@ -213,12 +213,12 @@ func ShouldUseFunctionCall(messages []clients.AIMessage) bool {
 // contains 检查字符串是否包含子字符串（不区分大小写）
 func contains(s, substr string) bool {
 	// 简单的包含检查，可以根据需要改进
-	return len(s) >= len(substr) && 
-		   (s == substr || 
-		    len(s) > len(substr) && 
-		    (s[:len(substr)] == substr || 
-		     s[len(s)-len(substr):] == substr ||
-		     containsInMiddle(s, substr)))
+	return len(s) >= len(substr) &&
+		(s == substr ||
+			len(s) > len(substr) &&
+				(s[:len(substr)] == substr ||
+					s[len(s)-len(substr):] == substr ||
+					containsInMiddle(s, substr)))
 }
 
 // containsInMiddle 检查字符串中间是否包含子字符串

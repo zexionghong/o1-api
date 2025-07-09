@@ -199,7 +199,7 @@ function_call:
     # 搜索服务类型: search1api, google, bing, serpapi, serper, duckduckgo, searxng
     service: "google"
     # 最大搜索结果数
-    max_results: 10
+    max_results: 5
     # 深度搜索数量（仅 search1api 支持）
     crawl_results: 0
     # 是否爬取网页内容并转换为Markdown（启用后会显示数据源）
@@ -213,3 +213,6 @@ function_call:
     # serpapi_key: "your_serpapi_key"
     # serper_key: "your_serper_key"
     # searxng_base_url: "https://your-searxng-instance.com"
+
+
+

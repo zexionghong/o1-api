@@ -366,7 +366,7 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 	c.Header("X-Duration-Ms", strconv.FormatInt(response.Duration.Milliseconds(), 10))
 
 	// 检查是否需要处理 Function Call
-	if h.config.FunctionCall.Enabled && response.Response != nil {
+	if h.functionCallHandler != nil && response.Response != nil {
 		finalResponse, err := h.handleFunctionCallResponse(c.Request.Context(), response.Response, aiRequest, gatewayRequest)
 		if err != nil {
 			h.logger.WithFields(map[string]interface{}{
@@ -718,7 +718,7 @@ func (h *AIHandler) handleStreamingRequestWithFunctionCall(c *gin.Context, gatew
 	}
 
 	// 检查是否需要处理 Function Call
-	if h.config.FunctionCall.Enabled && response.Response != nil {
+	if h.functionCallHandler != nil && response.Response != nil {
 		finalResponse, err := h.handleFunctionCallResponse(c.Request.Context(), response.Response, &nonStreamRequest, nonStreamGatewayRequest)
 		if err != nil {
 			h.logger.WithFields(map[string]interface{}{
