@@ -74,25 +74,22 @@ func (r *Router) SetupRoutes() {
 	r.engine.Use(middleware.TimeoutMiddleware(30 * time.Second))
 
 	// 创建处理器
-	// 创建 Function Call 相关服务
-	var functionCallHandler functioncall.FunctionCallHandler
-	if r.config.FunctionCall.Enabled {
-		searchConfig := &functioncall.SearchConfig{
-			Service:        r.config.FunctionCall.SearchService.Service,
-			MaxResults:     r.config.FunctionCall.SearchService.MaxResults,
-			CrawlResults:   r.config.FunctionCall.SearchService.CrawlResults,
-			CrawlContent:   r.config.FunctionCall.SearchService.CrawlContent,
-			Search1APIKey:  r.config.FunctionCall.SearchService.Search1APIKey,
-			GoogleCX:       r.config.FunctionCall.SearchService.GoogleCX,
-			GoogleKey:      r.config.FunctionCall.SearchService.GoogleKey,
-			BingKey:        r.config.FunctionCall.SearchService.BingKey,
-			SerpAPIKey:     r.config.FunctionCall.SearchService.SerpAPIKey,
-			SerperKey:      r.config.FunctionCall.SearchService.SerperKey,
-			SearXNGBaseURL: r.config.FunctionCall.SearchService.SearXNGBaseURL,
-		}
-		searchService := functioncall.NewSearchService(searchConfig, r.logger)
-		functionCallHandler = functioncall.NewFunctionCallHandler(searchService, r.logger)
+	// 创建 Function Call 相关服务（始终创建，通过 web_search 参数控制使用）
+	searchConfig := &functioncall.SearchConfig{
+		Service:        r.config.FunctionCall.SearchService.Service,
+		MaxResults:     r.config.FunctionCall.SearchService.MaxResults,
+		CrawlResults:   r.config.FunctionCall.SearchService.CrawlResults,
+		CrawlContent:   r.config.FunctionCall.SearchService.CrawlContent,
+		Search1APIKey:  r.config.FunctionCall.SearchService.Search1APIKey,
+		GoogleCX:       r.config.FunctionCall.SearchService.GoogleCX,
+		GoogleKey:      r.config.FunctionCall.SearchService.GoogleKey,
+		BingKey:        r.config.FunctionCall.SearchService.BingKey,
+		SerpAPIKey:     r.config.FunctionCall.SearchService.SerpAPIKey,
+		SerperKey:      r.config.FunctionCall.SearchService.SerperKey,
+		SearXNGBaseURL: r.config.FunctionCall.SearchService.SearXNGBaseURL,
 	}
+	searchService := functioncall.NewSearchService(searchConfig, r.logger)
+	functionCallHandler := functioncall.NewFunctionCallHandler(searchService, r.logger)
 
 	aiHandler := handlers.NewAIHandler(r.gatewayService, r.logger, r.config, functionCallHandler)
 	userHandler := handlers.NewUserHandler(r.serviceFactory.UserService(), r.logger)

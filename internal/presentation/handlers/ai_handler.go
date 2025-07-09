@@ -295,10 +295,11 @@ func (h *AIHandler) ChatCompletions(c *gin.Context) {
 		Stream:      chatRequest.Stream,
 		Tools:       chatRequest.Tools,
 		ToolChoice:  chatRequest.ToolChoice,
+		WebSearch:   chatRequest.WebSearch,
 	}
 
-	// 如果启用了 Function Call 且没有提供工具，自动添加可用工具
-	if h.config.FunctionCall.Enabled && len(aiRequest.Tools) == 0 && functioncall.ShouldUseFunctionCall(aiRequest.Messages) {
+	// 如果开启了联网搜索且没有提供工具，自动添加可用工具
+	if h.functionCallHandler != nil && len(aiRequest.Tools) == 0 && aiRequest.WebSearch {
 		aiRequest.Tools = h.functionCallHandler.GetAvailableTools()
 		aiRequest.ToolChoice = "auto"
 	}
@@ -477,6 +478,21 @@ func (h *AIHandler) Completions(c *gin.Context) {
 		MaxTokens:   completionRequest.MaxTokens,
 		Temperature: completionRequest.Temperature,
 		Stream:      completionRequest.Stream,
+		WebSearch:   completionRequest.WebSearch,
+	}
+
+	// 如果开启了联网搜索，自动添加可用工具
+	if h.functionCallHandler != nil && aiRequest.WebSearch {
+		// 将 prompt 转换为 messages 格式以支持 function call
+		aiRequest.Messages = []clients.AIMessage{
+			{
+				Role:    "user",
+				Content: aiRequest.Prompt,
+			},
+		}
+		aiRequest.Prompt = "" // 清空 prompt，使用 messages
+		aiRequest.Tools = h.functionCallHandler.GetAvailableTools()
+		aiRequest.ToolChoice = "auto"
 	}
 
 	// 构造网关请求

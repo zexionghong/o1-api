@@ -51,6 +51,7 @@ type AIRequest struct {
 	Stream      bool                   `json:"stream,omitempty"`
 	Tools       []Tool                 `json:"tools,omitempty"`       // Function call tools
 	ToolChoice  interface{}            `json:"tool_choice,omitempty"` // Tool choice strategy
+	WebSearch   bool                   `json:"web_search,omitempty"`  // 是否启用联网搜索
 	Extra       map[string]interface{} `json:"-"`                     // 额外参数
 }
 
@@ -61,8 +62,9 @@ type ChatCompletionRequest struct {
 	MaxTokens   int         `json:"max_tokens,omitempty" example:"150"`
 	Temperature float64     `json:"temperature,omitempty" example:"0.7"`
 	Stream      bool        `json:"stream,omitempty" example:"false"`
-	Tools       []Tool      `json:"tools,omitempty"`       // Function call tools
-	ToolChoice  interface{} `json:"tool_choice,omitempty"` // Tool choice strategy
+	Tools       []Tool      `json:"tools,omitempty"`                      // Function call tools
+	ToolChoice  interface{} `json:"tool_choice,omitempty"`                // Tool choice strategy
+	WebSearch   bool        `json:"web_search,omitempty" example:"false"` // 是否启用联网搜索
 }
 
 // CompletionRequest 文本补全请求
@@ -72,6 +74,7 @@ type CompletionRequest struct {
 	MaxTokens   int     `json:"max_tokens,omitempty" example:"150"`
 	Temperature float64 `json:"temperature,omitempty" example:"0.7"`
 	Stream      bool    `json:"stream,omitempty" example:"false"`
+	WebSearch   bool    `json:"web_search,omitempty" example:"false"` // 是否启用联网搜索
 }
 
 // AIMessage AI消息
