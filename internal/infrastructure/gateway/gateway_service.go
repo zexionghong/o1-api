@@ -20,25 +20,13 @@ type GatewayService interface {
 	ProcessRequest(ctx context.Context, request *GatewayRequest) (*GatewayResponse, error)
 
 	// ProcessStreamRequest 处理流式AI请求
-	ProcessStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) error
+	ProcessStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *clients.StreamChunk) error
 
 	// HealthCheck 健康检查
 	HealthCheck(ctx context.Context) (*HealthCheckResult, error)
 
 	// GetStats 获取统计信息
 	GetStats(ctx context.Context) (*GatewayStats, error)
-}
-
-// StreamChunk 流式响应块
-type StreamChunk struct {
-	ID           string           `json:"id"`
-	Object       string           `json:"object"`
-	Created      int64            `json:"created"`
-	Model        string           `json:"model"`
-	Content      string           `json:"content"`
-	FinishReason *string          `json:"finish_reason"`
-	Usage        *clients.AIUsage `json:"usage,omitempty"`
-	Cost         *CostInfo        `json:"cost,omitempty"`
 }
 
 // GatewayRequest 网关请求
@@ -409,7 +397,7 @@ func (g *gatewayServiceImpl) HealthCheck(ctx context.Context) (*HealthCheckResul
 }
 
 // ProcessStreamRequest 处理流式AI请求
-func (g *gatewayServiceImpl) ProcessStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) error {
+func (g *gatewayServiceImpl) ProcessStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *clients.StreamChunk) error {
 	// 生成请求ID
 	if request.RequestID == "" {
 		var err error

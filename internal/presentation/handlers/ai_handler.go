@@ -42,7 +42,7 @@ func (h *AIHandler) handleStreamingRequest(c *gin.Context, gatewayRequest *gatew
 	w := c.Writer
 
 	// 创建流式响应通道
-	streamChan := make(chan *gateway.StreamChunk, 100)
+	streamChan := make(chan *clients.StreamChunk, 100)
 	errorChan := make(chan error, 1)
 
 	// 启动流式处理

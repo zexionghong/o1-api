@@ -19,7 +19,7 @@ type RequestRouter interface {
 	RouteRequest(ctx context.Context, request *RouteRequest) (*RouteResponse, error)
 
 	// RouteStreamRequest 路由流式请求
-	RouteStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) (*RouteResponse, error)
+	RouteStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *clients.StreamChunk) (*RouteResponse, error)
 
 	// GetAvailableProviders 获取可用的提供商
 	GetAvailableProviders(ctx context.Context, modelSlug string) ([]*entities.Provider, error)
@@ -286,95 +286,152 @@ func (r *requestRouterImpl) GetAllProviderStats() map[int64]*ProviderStats {
 }
 
 // RouteStreamRequest 路由流式请求
-func (r *requestRouterImpl) RouteStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *StreamChunk) (*RouteResponse, error) {
-	// 暂时返回错误，表示流式功能尚未完全实现
-	// TODO: 实现完整的流式请求路由
+func (r *requestRouterImpl) RouteStreamRequest(ctx context.Context, request *GatewayRequest, streamChan chan<- *clients.StreamChunk) (*RouteResponse, error) {
+	start := time.Now()
 
-	// 使用 channel 来等待流式数据发送完成
-	done := make(chan struct{})
+	// 生成请求ID（如果没有提供）
+	if request.RequestID == "" {
+		var err error
+		request.RequestID, err = r.requestIDGen.Generate()
+		if err != nil {
+			r.logger.WithField("error", err.Error()).Error("Failed to generate request ID")
+			request.RequestID = fmt.Sprintf("req_%d", time.Now().UnixNano())
+		}
+	}
 
-	// 模拟流式响应
-	go func() {
-		defer func() {
-			// 捕获panic，防止向已关闭的channel发送数据
-			if r := recover(); r != nil {
-				// 记录panic但不重新抛出
-				// 这通常发生在客户端断开连接后channel被关闭的情况
-			}
-			// 通知完成
-			close(done)
-		}()
+	r.logger.WithFields(map[string]interface{}{
+		"request_id": request.RequestID,
+		"user_id":    request.UserID,
+		"api_key_id": request.APIKeyID,
+		"model_slug": request.ModelSlug,
+		"stream":     true,
+	}).Info("Routing stream AI request")
 
-		// 发送一些模拟的流式数据块
-		chunks := []string{
-			"Hello",
-			" there!",
-			" This",
-			" is",
-			" a",
-			" simulated",
-			" streaming",
-			" response.",
+	// 获取可用的提供商
+	providers, err := r.GetAvailableProviders(ctx, request.ModelSlug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get available providers: %w", err)
+	}
+
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("no available providers for model: %s", request.ModelSlug)
+	}
+
+	// 尝试发送流式请求，支持重试和故障转移
+	var lastError error
+	retries := 0
+	maxRetries := 3
+
+	for retries <= maxRetries {
+		// 选择提供商
+		provider, err := r.loadBalancer.SelectProvider(ctx, providers)
+		if err != nil {
+			lastError = fmt.Errorf("failed to select provider: %w", err)
+			break
 		}
 
-		for i, content := range chunks {
-			select {
-			case <-ctx.Done():
-				// 上下文取消，停止发送
-				return
-			default:
-				// 尝试发送数据，如果channel已关闭则会panic，被defer捕获
-				select {
-				case streamChan <- &StreamChunk{
-					ID:      fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano()),
-					Object:  "chat.completion.chunk",
-					Created: time.Now().Unix(),
-					Model:   request.ModelSlug,
-					Content: content,
-					FinishReason: func() *string {
-						if i == len(chunks)-1 {
-							reason := "stop"
-							return &reason
-						}
-						return nil
-					}(),
-				}:
-					time.Sleep(100 * time.Millisecond) // 模拟延迟
-				case <-ctx.Done():
-					// 在发送过程中上下文被取消
-					return
+		// 获取模型信息
+		model, err := r.modelService.GetModelBySlug(ctx, provider.ID, request.ModelSlug)
+		if err != nil {
+			r.logger.WithFields(map[string]interface{}{
+				"request_id":  request.RequestID,
+				"provider_id": provider.ID,
+				"model_slug":  request.ModelSlug,
+				"error":       err.Error(),
+			}).Warn("Model not found for provider, trying next provider")
+
+			// 从可用提供商列表中移除这个提供商
+			providers = r.removeProvider(providers, provider.ID)
+			if len(providers) == 0 {
+				lastError = fmt.Errorf("no providers support model: %s", request.ModelSlug)
+				break
+			}
+			retries++
+			continue
+		}
+
+		// 发送流式请求
+		err = r.sendStreamRequest(ctx, provider, model, request, streamChan)
+		if err != nil {
+			r.logger.WithFields(map[string]interface{}{
+				"request_id":  request.RequestID,
+				"provider_id": provider.ID,
+				"model_slug":  request.ModelSlug,
+				"retry":       retries,
+				"error":       err.Error(),
+			}).Warn("Stream request failed, retrying with next provider")
+
+			// 记录失败
+			r.loadBalancer.RecordResponse(ctx, provider.ID, false, time.Since(start))
+
+			lastError = err
+			retries++
+
+			// 如果还有重试机会，从列表中移除失败的提供商
+			if retries <= maxRetries {
+				providers = r.removeProvider(providers, provider.ID)
+				if len(providers) == 0 {
+					break
 				}
 			}
+			continue
 		}
-	}()
 
-	// 等待流式数据发送完成或上下文取消
-	select {
-	case <-done:
-		// 流式数据发送完成
-	case <-ctx.Done():
-		// 上下文取消
-		return nil, ctx.Err()
-	}
+		// 请求成功
+		duration := time.Since(start)
+		r.loadBalancer.RecordResponse(ctx, provider.ID, true, duration)
 
-	// 构造基本响应
-	response := &RouteResponse{
-		Provider: &entities.Provider{
-			Name: "simulated",
-		},
-		Model: &entities.Model{
-			Name: request.ModelSlug,
-		},
-		Response: &clients.AIResponse{
-			Usage: clients.AIUsage{
-				PromptTokens:     10,
-				CompletionTokens: 20,
-				TotalTokens:      30,
+		r.logger.WithFields(map[string]interface{}{
+			"request_id":  request.RequestID,
+			"provider_id": provider.ID,
+			"model_slug":  request.ModelSlug,
+			"duration":    duration,
+			"retries":     retries,
+		}).Info("Stream request completed successfully")
+
+		// 构造响应（流式请求的响应信息有限）
+		return &RouteResponse{
+			Provider: provider,
+			Model:    model,
+			Response: &clients.AIResponse{
+				Usage: clients.AIUsage{
+					// 流式请求的使用量信息通常在最后一个chunk中
+					TotalTokens: 0, // 将在流结束时更新
+				},
 			},
-		},
-		Duration:  100 * time.Millisecond,
-		RequestID: request.RequestID,
+			Duration:  duration,
+			Retries:   retries,
+			RequestID: request.RequestID,
+		}, nil
 	}
 
-	return response, nil
+	// 所有重试都失败了
+	r.logger.WithFields(map[string]interface{}{
+		"request_id": request.RequestID,
+		"retries":    retries,
+		"error":      lastError.Error(),
+	}).Error("Stream request failed after all retries")
+
+	return &RouteResponse{
+		RequestID: request.RequestID,
+		Duration:  time.Since(start),
+		Retries:   retries,
+		Error:     lastError,
+	}, lastError
+}
+
+// sendStreamRequest 发送流式请求到提供商
+func (r *requestRouterImpl) sendStreamRequest(ctx context.Context, provider *entities.Provider, model *entities.Model, request *GatewayRequest, streamChan chan<- *clients.StreamChunk) error {
+	// 设置超时
+	timeout := provider.GetTimeout()
+	requestCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// 发送流式请求
+	err := r.aiClient.SendStreamRequest(requestCtx, provider, request.Request, streamChan)
+	if err != nil {
+		return fmt.Errorf("failed to send stream request to provider %s: %w", provider.Name, err)
+	}
+
+	return nil
 }
